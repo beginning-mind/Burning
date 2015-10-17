@@ -1,0 +1,704 @@
+//
+//  MCAlbumRichTextView.m
+//  ClassNet
+//
+//  Created by lzw on 15/3/25.
+//  Copyright (c) 2015年 lzw. All rights reserved.
+//
+
+#import "PubShowRichTextView.h"
+#import "PubShowCollectionFlowLayout.h"
+#import "PubShowPhotoCollectionViewCell.h"
+#import "LayoutConst.h"
+#import "XHImageViewer.h"
+#import <NSDate+DateTools.h>
+#import <SDWebImage/UIImageView+WebCache.h>
+#import "SVGloble.h"
+#import "LCComment.h"
+#import "BaseViewController.h"
+#import "UserListViewController.h"
+#import "NSString+DynamicHeight.h"
+
+#define DIGUSERIMAGEVIEWTAG 200
+#define COMMENTLABELTAG 300
+
+@interface PubShowRichTextView()
+
+@property (nonatomic,strong) UIImageView* avatarImageView;
+
+@property (nonatomic,strong) UILabel* usernameLabel;
+
+@property (nonatomic,strong) UILabel* contentLabel;
+
+//@property (nonatomic,strong) UICollectionView* shareCollectionView;
+@property(nonatomic,strong)UIView *shareimageViewBg;
+
+@property (nonatomic,strong) UILabel* timestampLabel;
+
+@property(nonatomic,strong)NSArray *arry;
+
+@property(nonatomic,strong)UIButton *likesButton;
+@property (nonatomic,strong) UILabel *likesCountLable;
+
+@property(nonatomic,strong)UIButton *commentButton;
+@property(nonatomic,strong) UILabel *commentCountLable;
+
+@property(nonatomic,strong)UIView *commentDigImageView;
+
+@property(nonatomic,strong)UIButton *deleteBtn;
+//@property(nonatomic,strong)UIView *commentViewSeperator;
+//
+//@property(nonatomic,strong)UIView *digUserView;
+//@property(nonatomic,strong)UIView *commentView;
+
+@end
+
+static NSString* photoCollectionViewIdentifier=@"photoCell";
+
+@implementation PubShowRichTextView
+
++(CGFloat)contentWidth{
+    return CGRectGetWidth([[UIScreen mainScreen] bounds])-2*kCommonAvatarLeadingSpace;
+}
+
++(CGFloat)getCollectionViewHeightWithPhotoCount:(NSInteger)photoCount{
+    if(photoCount==0){
+        return 0;
+    }
+    CGFloat cellSize = (CGRectGetWidth([[UIScreen mainScreen] bounds])-2*kPubShowPhotoInset)/3;
+    int row=photoCount/3+(photoCount%3 ? 1:0);
+    return row*cellSize+(row-1)*kPubShowPhotoInset;
+}
+
++(CGFloat)calculateRichTextHeightWithSHPublish:(LCPublish*)lcPublish{
+    if(lcPublish==nil){
+        return 0;
+    }
+    //avatar
+    CGFloat richTextHeight=kSmallSpace;
+    richTextHeight+=kCommonAvatarSize;
+    //richTextHeight+=kSmallTextVerticSpace;
+
+    //photo
+    if (lcPublish.publishPhotos.count>0) {
+        richTextHeight+=[SVGloble shareInstance].globleWidth;
+    }
+    
+    //content
+   CGFloat contentHeight = [NSString getTextHeight:lcPublish.publishContent textFont:[UIFont systemFontOfSize:kCommonFontSize] width:[[self class] contentWidth]];
+    
+    if (contentHeight>0) {
+        richTextHeight+=kSmallTextVerticSpace;
+    }
+    richTextHeight+=contentHeight;
+
+
+    richTextHeight+=kSmallTextVerticSpace;
+    richTextHeight+=kPubShowCommentButtonHeight;
+    
+    if (lcPublish.digUsers.count>0) {
+        richTextHeight+=kSmallTextVerticSpace;
+        richTextHeight+=kSmallAvatarSize;
+    }
+    
+    int i = 0;
+    for (LCComment *comment in lcPublish.comments) {
+        if (i>3) {
+                richTextHeight+=kSmallTextVerticSpace;
+                richTextHeight+=kMoreCommentButtonHeight;
+                break;
+        }
+        NSString *commentUserName;
+        AVUser *commentUser;
+        @try {
+            commentUser = lcPublish.commentUsers[i];
+            commentUserName =commentUser.username;
+        }
+        @catch (NSException *exception) {
+            commentUserName = @"null";
+        }
+        richTextHeight+=kSmallTextVerticSpace;
+        
+        NSString *curComment =[NSString stringWithFormat:@"%@:%@",commentUserName,comment.commentContent];
+        richTextHeight +=[NSString getTextHeight:curComment textFont:[UIFont systemFontOfSize:kCommonFontSize] width:[[self class] contentWidth]];
+        i++;
+    }
+    richTextHeight+=kSmallSpace;
+    return richTextHeight;
+}
+
+- (UIViewController*)getSuperViewController{
+    for (UIView* next = [self superview]; next; next = next.superview) {
+        UIResponder* nextResponder = [next nextResponder];
+        if ([nextResponder isKindOfClass:[UIViewController class]]) {
+            return (UIViewController*)nextResponder;
+        }
+    }
+    return nil;
+}
+
+-(UIImageView*)avatarImageView{
+    if(_avatarImageView==nil){
+        _avatarImageView=[[UIImageView alloc] initWithFrame:CGRectMake(kCommonAvatarLeadingSpace,kSmallSpace, kCommonAvatarSize, kCommonAvatarSize)];
+//        _avatarImageView.layer.masksToBounds =YES;
+//        _avatarImageView.layer.cornerRadius =kCommonAvatarSize/2.0;
+        _avatarImageView.userInteractionEnabled = YES;
+        UITapGestureRecognizer *singleTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(avatarClick:)];
+        [_avatarImageView addGestureRecognizer:singleTap];
+        
+    }
+    return _avatarImageView;
+}
+
+-(UILabel*)usernameLabel{
+    if(_usernameLabel==nil){
+        _usernameLabel=[[UILabel alloc] initWithFrame:CGRectMake(kCommonAvatarLeadingSpace+kCommonAvatarSize+kSmallTextAvatarHorizalSpace, kLargeTextTopSpace,[[self class] contentWidth]-kCommonAvatarSize-kSmallTextAvatarHorizalSpace-kPubShowTimeLableWidth , 18)];
+        _usernameLabel.font = [UIFont systemFontOfSize:kCommonFontSize];
+        _usernameLabel.textColor=[UIColor blackColor];
+    }
+    return _usernameLabel;
+}
+
+-(UILabel*)timestampLabel{
+    if(_timestampLabel==nil){
+        _timestampLabel=[[UILabel alloc] initWithFrame:CGRectMake(CGRectGetWidth([[UIScreen mainScreen] bounds])-kCommonAvatarLeadingSpace-kPubShowTimeLableWidth, CGRectGetMinY(self.usernameLabel.frame), kPubShowTimeLableWidth, 16)];
+        _timestampLabel.textAlignment = NSTextAlignmentRight;
+        _timestampLabel.font=[UIFont systemFontOfSize:kSmallFontSize];
+        _timestampLabel.textColor=RGB(133, 133, 133);
+    }
+    return _timestampLabel;
+}
+
+//-(UICollectionView*)shareCollectionView{
+//    if(_shareCollectionView==nil){
+//        
+//        UICollectionViewFlowLayout *layout = [[UICollectionViewFlowLayout alloc]init];
+//        layout.minimumInteritemSpacing =1.0f;
+//        layout.minimumLineSpacing = 1.0f;
+//        layout.sectionInset =UIEdgeInsetsMake(0, 0, 0, 0);
+//        _shareCollectionView=[[UICollectionView alloc] initWithFrame:CGRectZero collectionViewLayout:layout];
+//        _shareCollectionView.backgroundColor=[UIColor clearColor];
+//        [_shareCollectionView registerClass:[PubShowPhotoCollectionViewCell class] forCellWithReuseIdentifier:photoCollectionViewIdentifier];
+//        _shareCollectionView.delegate=self;
+//        _shareCollectionView.dataSource=self;
+//    }
+//    return _shareCollectionView;
+//}
+-(UIView*)shareimageViewBg{
+    if (_shareimageViewBg ==nil) {
+        _shareimageViewBg = [[UIView alloc]initWithFrame:CGRectZero];
+        _shareimageViewBg.backgroundColor = [UIColor whiteColor];
+    }
+    return _shareimageViewBg;
+}
+
+-(UILabel*)contentLabel{
+    if(!_contentLabel){
+        _contentLabel=[[UILabel alloc] initWithFrame:CGRectZero];
+        _contentLabel.font=[UIFont systemFontOfSize:kCommonFontSize];
+        _contentLabel.textColor = [UIColor blackColor];
+        _contentLabel.textAlignment = NSTextAlignmentLeft;
+        _contentLabel.numberOfLines=0;
+    }
+    return _contentLabel;
+}
+
+-(UIButton*)likesButton{
+    if(_likesButton==nil){
+        _likesButton=[[UIButton alloc] initWithFrame:CGRectZero];
+//        _likesButton.titleLabel.font = [UIFont systemFontOfSize: kSmallFontSize];
+//        [_likesButton setTitleColor:[UIColor blueColor] forState:UIControlStateNormal];
+//        _likesButton.contentHorizontalAlignment=UIControlContentHorizontalAlignmentLeft;
+//        [_likesButton setTitle:@"赞" forState:UIControlStateNormal];
+//        [_likesButton setImage:[UIImage imageNamed:@"pl_thumb_normal"] forState:UIControlStateNormal];
+        [_likesButton addTarget:self action:@selector(likeButtonClick:) forControlEvents:UIControlEventTouchUpInside];
+    }
+    return _likesButton;
+}
+
+-(UILabel*)likesCountLable{
+    if(_likesCountLable==nil){
+        _likesCountLable=[[UILabel alloc] initWithFrame:CGRectZero];
+        //_likesLable.textAlignment = NSTextAlignmentRight;
+        _likesCountLable.font=[UIFont systemFontOfSize:kSmallFontSize];
+        _likesCountLable.textColor=RGB(0, 0, 0);
+    }
+    return _likesCountLable;
+}
+
+-(UIButton*)commentButton{
+    if(_commentButton==nil){
+        _commentButton=[[UIButton alloc] initWithFrame:CGRectZero];
+//        _commentButton.titleLabel.font = [UIFont systemFontOfSize: kSmallFontSize];
+//        [_commentButton setTitleColor:[UIColor blueColor] forState:UIControlStateNormal];
+//        _commentButton.contentHorizontalAlignment=UIControlContentHorizontalAlignmentLeft;
+//        [_commentButton setTitle:@"评论" forState:UIControlStateNormal];
+        [_commentButton setImage:[UIImage imageNamed:@"comment"] forState:UIControlStateNormal];
+        [_commentButton addTarget:self action:@selector(commentButtonClick:) forControlEvents:UIControlEventTouchUpInside];
+    }
+    return _commentButton;
+}
+
+-(UILabel*)commentCountLable{
+    if(_commentCountLable==nil){
+        _commentCountLable=[[UILabel alloc] initWithFrame:CGRectZero];
+        _commentCountLable.font=[UIFont systemFontOfSize:kSmallFontSize];
+        _commentCountLable.textColor=RGB(0, 0, 0);
+    }
+    return _commentCountLable;
+}
+
+-(UIButton*)deleteBtn{
+    if (_deleteBtn==nil) {
+        _deleteBtn = [[UIButton alloc] initWithFrame:CGRectZero];
+        [_deleteBtn setTitle:@"删除" forState:UIControlStateNormal];
+        [_deleteBtn setTitleColor:RGB(199, 199, 199) forState:UIControlStateNormal];
+        _deleteBtn.titleLabel.font = [UIFont systemFontOfSize:14];
+        _deleteBtn.contentHorizontalAlignment = UIControlContentHorizontalAlignmentRight;
+        [_deleteBtn addTarget:self action:@selector(deleteBtn:) forControlEvents:UIControlEventTouchUpInside];
+    }
+    return _deleteBtn;
+}
+
+-(UIView*)commentDigImageView{
+    if (_commentDigImageView==nil) {
+        _commentDigImageView = [[UIImageView alloc]initWithFrame:CGRectZero];
+        _commentDigImageView.userInteractionEnabled = true;
+    }
+    return  _commentDigImageView;
+}
+
+
+-(void)setPublish:(LCPublish *)publish{
+    _publish=publish;
+    self.usernameLabel.text=_publish.creator.username;
+    self.contentLabel.text=_publish.publishContent;
+    
+    AVFile* avatarFile=[publish.creator objectForKey:@"avatar"];
+    NSString *avatarUrl = avatarFile.url;
+    [self.avatarImageView sd_cancelCurrentImageLoad];
+    [self.avatarImageView sd_setImageWithURL:[NSURL URLWithString:avatarUrl] placeholderImage:[UIImage imageNamed:@"blank_avatar.jpg"]];
+    
+    [self reLoadShareImage];
+    //[self.shareCollectionView reloadData];
+    
+    self.timestampLabel.text=_publish.createdAt.timeAgoSinceNow;
+    self.likesCountLable.text =[[NSString alloc]initWithFormat:@"%lu",(unsigned long)_publish.digUsers.count];
+    self.commentCountLable.text =[[NSString alloc]initWithFormat:@"%lu",(unsigned long)_publish.comments.count];
+    
+    if ([_publish.digUsers containsObject:[AVUser currentUser]]) {
+        [self.likesButton setImage:[UIImage imageNamed:@"liked"] forState:UIControlStateNormal];
+    }
+    else{
+        [_likesButton setImage:[UIImage imageNamed:@"like"] forState:UIControlStateNormal];
+    }
+    
+    [self reLoadCommentDigView];
+    
+    [self setNeedsLayout];
+}
+
+-(void)reLoadShareImage{
+    NSArray *subviews = self.shareimageViewBg.subviews;
+    for (UIView *subview in subviews) {
+        [subview removeFromSuperview];
+    }
+    if (self.publish.publishPhotos.count>0) {
+        AVFile *shareImgFile = self.publish.publishPhotos[0];
+
+        NSString *sizestr = [shareImgFile.metaData valueForKey:@"imgSize"];
+        NSArray *sizeArry = [sizestr componentsSeparatedByString:@","];
+        NSString *wStr = sizeArry[0];
+        CGFloat W  =wStr.floatValue;
+        NSString *hstr = sizeArry[1];
+        CGFloat H = hstr.floatValue;
+        CGFloat x = W>H?W:H;
+        CGFloat ratio = x/[SVGloble shareInstance].globleWidth;
+        CGFloat width = W/ratio;
+        CGFloat height = H/ratio;
+        
+        self.shareimageViewBg.frame = CGRectMake(0, CGRectGetMaxY(self.avatarImageView.frame)+kSmallTextVerticSpace, [SVGloble shareInstance].globleWidth, [SVGloble shareInstance].globleWidth);
+        UIImageView *imgView = [[UIImageView alloc]initWithFrame:CGRectMake(([SVGloble shareInstance].globleWidth-width)/2.0, ([SVGloble shareInstance].globleWidth-height)/2.0, width, height)];
+        [imgView sd_cancelCurrentImageLoad];
+        [imgView sd_setImageWithURL:[NSURL URLWithString:shareImgFile.url]];
+        imgView.userInteractionEnabled = YES;
+        UITapGestureRecognizer *tapGestureRecognizer = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(shareImgClick:)];
+        [imgView addGestureRecognizer:tapGestureRecognizer];
+        
+        [self.shareimageViewBg addSubview:imgView];
+    }
+}
+
+-(void)reLoadCommentDigView{
+    NSArray *subviews = self.commentDigImageView.subviews;
+    for (UIView *subview in subviews) {
+            [subview removeFromSuperview];
+    }
+
+    CGFloat maxY =0.0f;
+    //digUser
+    int digAvatarCount =([[self class] contentWidth]-kCommonAvatarHorizalSpace)/(kSmallAvatarSize+kCommonAvatarHorizalSpace);
+    CGFloat x = 0.0f;
+    int z= 0;
+    for (AVUser *digUser in _publish.digUsers) {
+        x = z*(kSmallAvatarSize+kSmallAvatarHorizalSpace);
+        UIImageView *imageView =[[UIImageView alloc]initWithFrame:CGRectMake(x, 0, kSmallAvatarSize, kSmallAvatarSize)];
+        int tag =DIGUSERIMAGEVIEWTAG+z;
+        imageView.userInteractionEnabled = YES;
+        imageView.tag =tag;
+        [self.commentDigImageView addSubview:imageView];
+        if (z==digAvatarCount && _publish.digUsers.count>digAvatarCount) {
+            //更多按钮
+            imageView.image = [UIImage imageNamed:@"btn_more_normal"];
+            UITapGestureRecognizer *singleTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(moreUserClick:)];
+            [imageView addGestureRecognizer:singleTap];
+            break;
+        }
+        else{
+            
+            AVFile *avtarFile =[digUser objectForKey:@"avatar"];
+            [imageView sd_cancelCurrentImageLoad];
+            [imageView sd_setImageWithURL:[NSURL URLWithString:avtarFile.url] placeholderImage:[UIImage imageNamed:@"blank_avatar.jpg"]];
+//            imageView.layer.masksToBounds = YES;
+//            imageView.layer.cornerRadius = kSmallAvatarSize/2.0;
+            UITapGestureRecognizer *singleTap = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(digUserClick:)];
+            [imageView addGestureRecognizer:singleTap];
+        }
+        z++;
+        maxY = CGRectGetMaxY(imageView.frame);
+    }
+    
+    //comment
+    int i = 0;
+    for (LCComment *comment in _publish.comments) {
+        if (i>3) {
+                UIButton *button = [[UIButton alloc]initWithFrame:CGRectMake(0, maxY, kMoreCommentButtonWidth,kMoreCommentButtonHeight)];
+                [button setTitle:@"查看更多评论" forState:UIControlStateNormal];
+                [button setTitleColor:RGB(30, 172, 199) forState:UIControlStateNormal];
+                button.titleLabel.font = [UIFont systemFontOfSize: kCommonFontSize];
+                button.contentHorizontalAlignment=UIControlContentHorizontalAlignmentLeft;
+                [button addTarget:self action:@selector(commentButtonClick:) forControlEvents:UIControlEventTouchUpInside];
+                [self.commentDigImageView  addSubview:button];
+                 break;
+           
+        }
+        else if (i==0) {
+            if (_publish.digUsers.count>0) {
+                maxY+=kSmallTextVerticSpace;
+            }
+        }
+        NSString *commentUserName;
+        AVUser *commentUser;
+        @try {
+            commentUser = _publish.commentUsers[i];
+            commentUserName =commentUser.username;
+        }
+        @catch (NSException *exception) {
+            commentUserName = @"null";
+        }
+//        @finally {
+//            commentUserName =@"null";
+//        }
+
+        NSString *commentContent = comment.commentContent;
+        NSString *content = [NSString stringWithFormat:@"%@ %@",commentUserName,commentContent];
+        
+        NSMutableAttributedString *str = [[NSMutableAttributedString alloc] initWithString:content];
+        [str addAttribute:NSForegroundColorAttributeName value:RGB(133, 133, 133) range:NSMakeRange(0,commentUserName.length)];
+
+        //NSString *searchText = @"// Do any additional setup after loading the view, typically from a nib.";
+        NSError *error = NULL;
+        NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"\\s回复\\s(\\S+?)\\s" options:NSRegularExpressionCaseInsensitive error:&error];
+        NSTextCheckingResult *result = [regex firstMatchInString:content options:0 range:NSMakeRange(0, [content length])];
+        if (result) {
+            NSInteger start = result.range.location+4;
+            NSInteger lenght = result.range.length -5;
+            [str addAttribute:NSForegroundColorAttributeName value:RGB(133, 133, 133) range:NSMakeRange(start,lenght)];
+        }
+
+        CGFloat height = [NSString getTextHeight:content textFont:[UIFont systemFontOfSize:kCommonFontSize] width:[[self class] contentWidth]];
+        
+        UILabel *label  = [[UILabel alloc]initWithFrame:CGRectMake(0, maxY, [[self class] contentWidth], height)];
+        label.font=[UIFont systemFontOfSize:kCommonFontSize];
+        label.numberOfLines = 0;
+        label.attributedText = str;
+        label.tag = COMMENTLABELTAG+i;
+        label.userInteractionEnabled =YES;
+        UITapGestureRecognizer *singleTap = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(commentClick:)];
+        [label addGestureRecognizer:singleTap];
+        [self.commentDigImageView addSubview:label];
+        maxY+=height;
+        maxY+=kSmallTextVerticSpace;
+        i++;
+    }
+}
+
+-(void)setup{
+    [self addSubview:self.avatarImageView];
+    [self addSubview:self.usernameLabel];
+    [self addSubview:self.shareimageViewBg];
+    [self addSubview:self.contentLabel];
+    [self addSubview:self.timestampLabel];
+    [self addSubview:self.likesButton];
+    [self addSubview:self.likesCountLable];
+    [self addSubview:self.deleteBtn];
+    [self addSubview:self.commentButton];
+    [self addSubview:self.commentCountLable];
+    [self addSubview:self.commentDigImageView];
+}
+
+- (instancetype)initWithFrame:(CGRect)frame
+{
+    self = [super initWithFrame:frame];
+    if (self) {
+        [self setup];
+    }
+    return self;
+}
+
+-(void)layoutSubviews{
+    [super layoutSubviews];
+    
+    CGFloat maxY = CGRectGetMaxY(self.avatarImageView.frame);
+    
+//    _shareCollectionView.frame=CGRectMake(0,CGRectGetMaxY(self.avatarImageView.frame)+kSmallTextVerticSpace, [SVGloble shareInstance].globleWidth, [[self class] getCollectionViewHeightWithPhotoCount:_publish.publishPhotos.count]);
+    if (_publish.publishPhotos.count>0) {
+        maxY= CGRectGetMaxY(self.shareimageViewBg.frame);
+    }
+    else{
+        _shareimageViewBg.frame = CGRectZero;
+    }
+    CGFloat contentHeight =[NSString getTextHeight:_publish.publishContent textFont:[UIFont systemFontOfSize:kCommonFontSize] width:[[self class] contentWidth]];
+    
+    _contentLabel.frame = CGRectMake(kCommonAvatarLeadingSpace, maxY+kSmallTextVerticSpace, [[self class] contentWidth], contentHeight);
+    if (contentHeight>0) {
+        maxY = CGRectGetMaxY(self.contentLabel.frame);
+    }
+    
+    _likesButton.frame = CGRectMake(kCommonAvatarLeadingSpace, maxY+kSmallTextVerticSpace, kPubShowCommentButtonWidth, kPubShowCommentButtonHeight);
+    
+    _likesCountLable.frame = CGRectMake(CGRectGetMaxX(_likesButton.frame)+kPubShowContentLineSpacing, CGRectGetMinY(self.likesButton.frame), 70, kPubShowCommentButtonHeight);
+    
+    _commentButton.frame = CGRectMake(CGRectGetMaxX(_likesCountLable.frame)+kPubShowContentLineSpacing, CGRectGetMinY(self.likesButton.frame), kPubShowCommentButtonWidth, kPubShowCommentButtonHeight);
+    
+    _commentCountLable.frame = CGRectMake(CGRectGetMaxX(_commentButton.frame)+kPubShowContentLineSpacing, CGRectGetMinY(self.likesButton.frame), 70, kPubShowCommentButtonHeight);
+    
+    _deleteBtn.frame = CGRectMake([SVGloble shareInstance].globleWidth-kPubShowCommentButtonWidth-kCommonAvatarLeadingSpace, CGRectGetMinY(self.likesButton.frame), kPubShowCommentButtonWidth, kPubShowCommentButtonHeight);
+
+    if ([[AVUser currentUser].objectId isEqualToString:self.publish.creator.objectId]) {
+        _deleteBtn.hidden = NO;
+    }
+    else{
+        _deleteBtn.hidden = YES;
+    }
+   
+     maxY= CGRectGetMaxY(_commentCountLable.frame);
+
+    //digUsersAvata
+    CGFloat commentDigViewHeight = 0.0f;
+    if (_publish.digUsers.count>0) {
+        commentDigViewHeight = kSmallAvatarSize;
+        if (_publish.comments.count>0) {
+            commentDigViewHeight+=kSmallTextVerticSpace;
+        }
+    }
+    
+    //comment
+    int i =0;
+    for (LCComment *comment in _publish.comments) {
+        if (i>3) {
+            commentDigViewHeight+=kSmallTextVerticSpace;
+            commentDigViewHeight+=kMoreCommentButtonHeight;
+            break;
+        }
+        else if (i==0){
+            commentDigViewHeight-=kSmallTextVerticSpace;
+        }
+        
+        NSString *commentUserName;
+        AVUser *commentUser;
+        @try {
+            commentUser = _publish.commentUsers[i];
+            commentUserName =commentUser.username;
+        }
+        @catch (NSException *exception) {
+            commentUserName = @"null";
+        }
+        NSString *commentContent = comment.commentContent;
+        NSString *content = [NSString stringWithFormat:@"%@ %@",commentUserName,commentContent];
+        
+        CGFloat curLabelHeight =[NSString getTextHeight:content textFont:[UIFont systemFontOfSize:kCommonFontSize] width:[[self class] contentWidth]];
+        commentDigViewHeight+=kSmallTextVerticSpace;
+        commentDigViewHeight+=curLabelHeight;
+        i++;
+    }
+    self.commentDigImageView.frame = CGRectMake(kCommonAvatarLeadingSpace, maxY+kSmallTextVerticSpace, [[self class] contentWidth], commentDigViewHeight);
+    maxY = CGRectGetMaxY(self.commentDigImageView.frame);
+    
+    CGRect frame=self.frame;
+    frame.size.height=maxY+kSmallSpace;
+    self.frame=frame;
+}
+
+#pragma mark - UICollection datasource delegat
+
+//- (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section{
+//    return _publish.publishPhotos.count;
+//}
+//
+//- (UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath{
+//    PubShowPhotoCollectionViewCell* photoCell=[collectionView dequeueReusableCellWithReuseIdentifier:photoCollectionViewIdentifier forIndexPath:indexPath];
+//    CGFloat cellSize = ([SVGloble shareInstance].globleWidth-2.0)/3.0;
+//    if(photoCell==nil){
+//        photoCell=[[PubShowPhotoCollectionViewCell alloc] initWithFrame:CGRectMake(0, 0, cellSize, cellSize)];
+//    }
+//    AVFile *pubPhoto = self.publish.publishPhotos[indexPath.row];
+//    [photoCell.photoImageView sd_setImageWithURL:[NSURL URLWithString:pubPhoto.url]];
+//    photoCell.indexPath=indexPath;
+//    return photoCell;
+//}
+//
+//-(void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath{
+//    PubShowPhotoCollectionViewCell* photoCell=(PubShowPhotoCollectionViewCell*)[self.shareCollectionView cellForItemAtIndexPath:indexPath];
+//    
+//    NSArray* visibleCells=self.shareCollectionView.visibleCells;
+//    NSSortDescriptor *sort = [NSSortDescriptor sortDescriptorWithKey:@"indexPath" ascending:YES];
+//    visibleCells = [visibleCells sortedArrayUsingDescriptors:[NSArray arrayWithObject:sort]];
+//    
+//    NSMutableArray* imageViews=[NSMutableArray array];
+//    [visibleCells enumerateObjectsUsingBlock:^(PubShowPhotoCollectionViewCell* cell, NSUInteger idx, BOOL *stop) {
+//
+//        [imageViews addObject:cell.photoImageView];
+//        
+//    }];
+//    XHImageViewer* imageViewer=[[XHImageViewer alloc] init];
+//    [imageViewer showWithImageViews:imageViews selectedView:imageViews[indexPath.row]];
+//}
+//
+//-(CGSize) collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout sizeForItemAtIndexPath:(NSIndexPath *)indexPath{
+//    CGSize finalSize = CGSizeMake(([SVGloble shareInstance].globleWidth-2.0)/3.0, ([SVGloble shareInstance].globleWidth-2.0)/3.0);
+//    return finalSize;
+//}
+
+#pragma mark - action 
+-(void)likeButtonClick:(UIButton*)sender{
+    if ([self.publish.digUsers containsObject:[AVUser currentUser]]) {
+        [self.likesButton setImage:[UIImage imageNamed:@"like"] forState:UIControlStateNormal];
+    }
+    else{
+        [self.likesButton setImage:[UIImage imageNamed:@"liked"] forState:UIControlStateNormal];
+    }
+//    sender.enabled = false;
+    if ([_richTextViewDelegate respondsToSelector:@selector(didLikeButtonClick:)]) {
+        [_richTextViewDelegate didLikeButtonClick:sender];
+    }
+}
+
+-(void)commentButtonClick:(UIButton*)sender{
+    if ([_richTextViewDelegate respondsToSelector:@selector(didCommentButtonClick:)]) {
+        [_richTextViewDelegate didCommentButtonClick:-1];
+    }
+}
+
+-(void)avatarClick:(UIGestureRecognizer*)gestureRecognizer{
+    if ([_richTextViewDelegate respondsToSelector:@selector(didAvatarImageViewClick:)]) {
+        [_richTextViewDelegate didAvatarImageViewClick:gestureRecognizer];
+    }
+}
+
+-(void)digUserClick:(UIGestureRecognizer*)gestureRecognizer{
+    NSInteger tag = gestureRecognizer.view.tag;
+    if ([_richTextViewDelegate respondsToSelector:@selector(didDigUserImageViewClick:)]) {
+        [_richTextViewDelegate didDigUserImageViewClick:tag-DIGUSERIMAGEVIEWTAG];
+    }
+}
+
+-(void)commentClick:(UIGestureRecognizer*)gestureRecognizer{
+        NSInteger tag = gestureRecognizer.view.tag;
+    if ([_richTextViewDelegate respondsToSelector:@selector(didCommentButtonClick:)]) {
+        [_richTextViewDelegate didCommentButtonClick:tag-COMMENTLABELTAG];
+    }
+}
+
+-(void)moreUserClick:(UIGestureRecognizer*)gestureRecognizer{
+    UserListViewController *userListVC = [[UserListViewController alloc]init];
+    userListVC.users = self.publish.digUsers;
+    BaseViewController *baseVC = [self getSuperViewController];
+    [baseVC.navigationController pushViewController:userListVC
+                                           animated:YES];
+}
+
+-(void)deleteBtn:(UIButton*)sender{
+//    UIActionSheet *sheet = [[UIActionSheet alloc] initWithTitle:@"举报" delegate:self cancelButtonTitle:nil destructiveButtonTitle:@"取消" otherButtonTitles:@"色情相关",@"违法违规",@"垃圾广告", nil];
+//    [sheet showInView:self];
+    UIAlertView *alterView = [[UIAlertView alloc]initWithTitle:nil message:@"确定删除" delegate:self cancelButtonTitle:@"取消" otherButtonTitles:@"确定", nil];
+    [alterView show];
+}
+
+-(void)shareImgClick:(UITapGestureRecognizer*)gestureRecognizer{
+    UIImageView *sharImgView = (UIImageView*)gestureRecognizer.view;
+    if (sharImgView!=nil) {
+        XHImageViewer *imageViewr = [[XHImageViewer alloc] init];
+        NSMutableArray *views = [NSMutableArray array];
+        [views addObject:sharImgView];
+        [imageViewr showWithImageViews:views selectedView:sharImgView];
+    }
+}
+
+#pragma mark actionSheet delegate
+- (void)actionSheet:(UIActionSheet *)actionSheet clickedButtonAtIndex:(NSInteger)buttonIndex{
+    NSString *reportUserId = [AVUser currentUser].objectId;
+    NSString *reportedUserId = self.publish.creator.objectId;
+    NSString *publishId = self.publish.objectId;
+    NSInteger reportType;
+    switch (buttonIndex) {
+        case 0:
+            // 取消
+            return;
+        case 1:
+            // 色情相关
+            reportType = 0;
+            break;
+        case 2:
+            // 违法违规
+            reportType = 1;
+            break;
+        case 3:
+            //垃圾广告
+            reportType = 2;
+            break;
+    }
+    NSError* error;
+    LCDataHelper *lcDataHelper = [[LCDataHelper alloc]init];
+    [lcDataHelper upLoadReport:reportUserId reportedUserID:reportedUserId publishID:publishId reportType:reportType error:&error];
+    if (error==nil) {
+        UIAlertView *alerView = [[UIAlertView alloc]initWithTitle:nil message:@"举报成功" delegate:self cancelButtonTitle:@"OK" otherButtonTitles:nil, nil];
+        [alerView show];
+    }
+    else{
+        UIAlertView *alerView = [[UIAlertView alloc]initWithTitle:nil message:@"举报失败,请检查网络!" delegate:self cancelButtonTitle:@"退出" otherButtonTitles:nil, nil];
+        [alerView show];
+    }
+}
+
+#pragma mark ALertView Delegate
+- (void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex{
+    if (buttonIndex ==1) {
+        //delete publish
+        NSError *err;
+        [self.publish setObject:[NSNumber numberWithInt:1] forKey:KEY_IS_DEL];
+        [self.publish save:&err];
+        NSString *deleteInfo;
+        if (err) {
+            deleteInfo = @"删除失败";
+        }
+        else{
+            deleteInfo = @"删除成功";
+        }
+        
+        UIAlertView *alert = [[UIAlertView alloc]initWithTitle:nil message:deleteInfo delegate:nil cancelButtonTitle:@"确定" otherButtonTitles:nil, nil];
+        [alert show];
+    }
+}
+
+@end

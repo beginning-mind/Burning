@@ -1,0 +1,337 @@
+//
+//  NearlyGroupViewController.m
+//  Burning
+//
+//  Created by wei_zhu on 15/5/28.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "NearlyGroupViewController.h"
+#import "BurningNavControl.h"
+#import "BuringTabBarController.h"
+#import <SDWebImage/UIImageView+WebCache.h>
+#import <MediaPlayer/MediaPlayer.h>
+#import <CoreLocation/CoreLocation.h>
+#import <MJRefresh.h>
+#import "CDIM.h"
+#import "SHGroup.h"
+#import "GroupTableViewCell.h"
+#import "ModelTransfer.h"
+#import "GroupCreationViewController.h"
+#import "GroupDetailViewController.h"
+#import "SVGloble.h"
+
+#define LOADCOUNT 10
+
+
+//@implementation CLLocationManager (TemporaryHack)
+//
+////模拟器测试用
+//- (void)hackLocationFix
+//{
+//    //CLLocation *location = [[CLLocation alloc] initWithLatitude:42 longitude:-50];
+//    float latitude = 39.906811;
+//    float longitude = 116.377586;  //这里可以是任意的经纬度值
+//    CLLocation *location= [[CLLocation alloc] initWithLatitude:latitude longitude:longitude];
+//    //    [[self delegate] locationManager:self didUpdateToLocation:location fromLocation:nil];
+//    [[self delegate] locationManager:self didUpdateLocations:[NSArray arrayWithObject:location]];
+//}
+//
+//-(void)startUpdatingLocation
+//{
+//    [self performSelector:@selector(hackLocationFix) withObject:nil afterDelay:0.1];
+//}
+//
+//@end
+
+
+
+@interface NearlyGroupViewController ()<CLLocationManagerDelegate, UITableViewDataSource, UITableViewDataSource>
+
+//@property(nonatomic,strong)UIView *root;
+
+@property (nonatomic,strong) CLLocationManager *locationManager;
+@property (nonatomic,strong) CLLocation *curLocation;
+
+@property (nonatomic,strong) NSMutableArray *shGroups;
+@property (nonatomic,assign) NSInteger curLoadOldCount;
+
+@property(nonatomic,strong)UITableView *nearlyGroupTableView;
+@property (nonatomic, strong) CDIM *im;
+//@property (nonatomic) NSInteger index;
+
+@property(nonatomic,strong)UILabel *unLocationPromtLable;
+
+@end
+
+@implementation NearlyGroupViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    [self setNavgationBar];
+    self.automaticallyAdjustsScrollViewInsets = NO;
+    self.nearlyGroupTableView = [[UITableView alloc]initWithFrame:CGRectMake(0, 0, self.view.frame.size.width, self.view.frame.size.height-kStatusBarHeight-kNavigationBarHeight)];
+    [self.view addSubview:self.nearlyGroupTableView];
+    self.nearlyGroupTableView.dataSource = self;
+    self.nearlyGroupTableView.delegate = self;
+    _im = [CDIM sharedInstance];
+    
+    //分割线从最左边画
+    if ([self.nearlyGroupTableView respondsToSelector:@selector(setSeparatorInset:)]) {
+        [self.nearlyGroupTableView setSeparatorInset:UIEdgeInsetsZero];
+    }
+    if ([self.nearlyGroupTableView respondsToSelector:@selector(setLayoutMargins:)]) {
+        [self.nearlyGroupTableView setLayoutMargins:UIEdgeInsetsZero];
+    }
+    
+    //空余cell没有分割线
+    UIView *view = [UIView new];
+    view.backgroundColor = [UIColor clearColor];
+    [self.nearlyGroupTableView setTableFooterView:view];
+    
+    CLAuthorizationStatus status =  [CLLocationManager authorizationStatus];
+    if (status ==2) {
+        self.unLocationPromtLable.hidden = NO;
+    }
+    else{
+        self.unLocationPromtLable.hidden = YES;
+        
+        //headRefresh
+        [self.nearlyGroupTableView addLegendHeaderWithRefreshingTarget:self refreshingAction:@selector(loadGroupData)];
+        [self.nearlyGroupTableView.header setTitle:@"加载中..." forState:MJRefreshHeaderStateRefreshing];
+        [self.nearlyGroupTableView.header setTitle:@"下拉刷新" forState:MJRefreshHeaderStateIdle];
+        [self.nearlyGroupTableView.header setTitle:@"松开刷新数据" forState:MJRefreshHeaderStatePulling];
+        self.nearlyGroupTableView.header.font = [UIFont systemFontOfSize:kCommonFontSize];
+        self.nearlyGroupTableView.header.textColor = RGB(133, 133, 133);
+        
+        [self.nearlyGroupTableView.header setUpdatedTimeHidden:YES];
+        //    [self.nearlyGroupTableView.header beginRefreshing];
+        
+        //footRefresh
+        [self.nearlyGroupTableView addLegendFooterWithRefreshingTarget:self refreshingAction:@selector(loadOldGroupData)];
+        [self.nearlyGroupTableView.footer setTitle:@"加载中..." forState:MJRefreshFooterStateRefreshing];
+        [self.nearlyGroupTableView.footer setTitle:@"" forState:MJRefreshFooterStateIdle];
+        [self.nearlyGroupTableView.footer setTitle:@"" forState:MJRefreshFooterStateNoMoreData];
+        self.nearlyGroupTableView.footer.font= [UIFont systemFontOfSize:kCommonFontSize];
+        self.nearlyGroupTableView.footer.textColor = RGB(133, 133, 133);
+        
+        //[self setNavgationBar];
+        [self startLocations];
+    }
+}
+
+-(void)setNavgationBar{
+    [self.navigationItem setTitle:@"附近的群"];
+    
+    UIBarButtonItem *addItem = [[UIBarButtonItem alloc] initWithTitle:@"新建群" style:UIBarButtonItemStyleBordered target:self action:@selector(createGroup:)];
+    self.navigationItem.rightBarButtonItems = @[addItem];
+}
+
+-(UILabel*)unLocationPromtLable{
+    
+    if (_unLocationPromtLable==nil) {
+        _unLocationPromtLable = [[UILabel alloc]initWithFrame:CGRectMake(0, 60, [SVGloble shareInstance].globleWidth, 20)];
+        _unLocationPromtLable.text = @"请开启定位功能";
+        _unLocationPromtLable.textColor = [UIColor blackColor];
+        _unLocationPromtLable.font = [UIFont systemFontOfSize:14];
+        _unLocationPromtLable.textAlignment = NSTextAlignmentCenter;
+        [self.view addSubview:_unLocationPromtLable];
+    }
+    return _unLocationPromtLable;
+}
+
+#pragma mark action
+-(void)createGroup:(UIButton*)send{
+    GroupCreationViewController *groupCreationViewController = [[GroupCreationViewController alloc]init];
+    [self.navigationController pushViewController:groupCreationViewController animated:YES];
+}
+
+-(void)startLocations {
+    self.locationManager = [[CLLocationManager alloc]init];
+    if ([CLLocationManager locationServicesEnabled]) {
+        NSLog( @"Starting CLLocationManager" );
+        self.locationManager.delegate = self;
+        self.locationManager.distanceFilter = 200;
+        self.locationManager.desiredAccuracy = kCLLocationAccuracyBest;
+        
+        if([self.locationManager respondsToSelector:@selector(requestAlwaysAuthorization)]) {
+            [self.locationManager requestAlwaysAuthorization]; // 永久授权
+            [self.locationManager requestWhenInUseAuthorization]; //使用中授权
+        }
+        
+        [self.locationManager startUpdatingLocation];
+    }
+    else {
+        NSLog( @"Cannot Starting CLLocationManager" );
+        self.locationManager.delegate = self;
+        self.locationManager.distanceFilter = 200;
+        self.locationManager.desiredAccuracy = kCLLocationAccuracyBest;
+        [self.locationManager startUpdatingLocation];
+    }
+}
+
+-(void)loadGroupData{
+    WEAKSELF
+    [self.lcDataHelper getGroupsWithLimit:LOADCOUNT skip:0 latitude:_curLocation.coordinate.latitude longitude:_curLocation.coordinate.longitude block:^(NSArray *objects, NSError *error) {
+        if (error) {
+            [weakSelf alert:@"读取群组数据失败"];
+        } else {
+            NSMutableArray *convIds = [[NSMutableArray alloc]init];
+            for (LCGroup *group in objects) {
+                [convIds addObject:group.conversationId];
+            }
+            
+            [_im fetchConvsWithArrayConvids:[convIds copy] callback:^(NSArray *objects2, NSError *error2) {
+                if (error2) {
+                    [weakSelf alert:@"读取群组数据详细失败"];
+                } else {
+                    weakSelf.shGroups = [[NSMutableArray alloc] init];
+                    for (AVIMConversation *conv in [objects2 reverseObjectEnumerator]) {
+                        SHGroup *shGroup = [ModelTransfer coversation2SHGroup:conv AndCurlocation:_curLocation];
+                        [_shGroups addObject:shGroup];
+                    }
+                    
+                    weakSelf.curLoadOldCount  = 1;
+                    [weakSelf.nearlyGroupTableView reloadData];
+                    [weakSelf.nearlyGroupTableView.header endRefreshing];
+                    if (objects.count<LOADCOUNT) {
+                        weakSelf.nearlyGroupTableView.footer.state = MJRefreshFooterStateNoMoreData;
+                    }
+                    else{
+                        weakSelf.nearlyGroupTableView.footer.state = MJRefreshFooterStateIdle;
+                    }
+                }
+            }];
+        }
+    }];
+}
+
+-(void)loadOldGroupData{
+    WEAKSELF
+    [self.lcDataHelper getGroupsWithLimit:LOADCOUNT skip:LOADCOUNT*self.curLoadOldCount latitude:_curLocation.coordinate.latitude longitude:_curLocation.coordinate.longitude block:^(NSArray *objects, NSError *error) {
+        if (error) {
+            [weakSelf alert:@"读取 更多群组数据 失败"];
+        } else {
+            NSMutableArray *convIds = [[NSMutableArray alloc]init];
+            for (LCGroup *group in objects) {
+                [convIds addObject:group.conversationId];
+            }
+            [_im fetchConvsWithArrayConvids:convIds callback:^(NSArray *objects2, NSError *error2) {
+                if (error2) {
+                    [weakSelf alert:@"读取 更多群组数据详细 失败"];
+                } else {
+                    if (objects2.count==0) {
+                        weakSelf.nearlyGroupTableView.footer.state = MJRefreshFooterStateNoMoreData;
+                    }
+                    else{
+                        if(weakSelf.shGroups ==nil){
+                            weakSelf.shGroups = [NSMutableArray array];
+                        }
+                        
+                        for (AVIMConversation *conv in [objects2 reverseObjectEnumerator]) {
+                            SHGroup *shGroup = [ModelTransfer coversation2SHGroup:conv AndCurlocation:_curLocation];
+                            [_shGroups addObject:shGroup];
+                        }
+                        
+                        weakSelf.curLoadOldCount++;
+                        [weakSelf.nearlyGroupTableView reloadData];
+                        [weakSelf.nearlyGroupTableView.footer endRefreshing];
+                    }
+                }
+            }];
+        }
+    }];
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+-(void)setCustomNavControl{
+    //set leftButton
+    [self.customNavController.leftButton setImage:[UIImage imageNamed:@"homeBtn2"] forState:UIControlStateNormal];
+    [self.customNavController.leftButton addTarget:self action:@selector(homeBtnClick) forControlEvents:UIControlEventTouchUpInside];
+    //set titile
+    self.customNavController.title.text =@"附近的群";
+    self.customNavController.title.textColor = [UIColor whiteColor];
+    [self.view addSubview:self.customNavController];
+    self.customNavController.userInteractionEnabled = YES;
+}
+
+-(void)homeBtnClick{
+    [self.navigationController popViewControllerAnimated:YES];
+}
+
+-(void)viewDidAppear:(BOOL)animated{
+    
+    [super viewDidAppear:YES];
+}
+
+#pragma mark CLLocationManagerDelegate
+-(void)locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray *)locations{
+    _curLocation = [locations lastObject];
+    [manager stopUpdatingLocation];
+    [self loadGroupData];
+}
+
+#pragma mark TableViewDataSource delegate
+-(NSInteger)numberOfSectionsInTableView:(UITableView *)tableView{
+    return 1;
+}
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section{
+    return _shGroups.count;
+}
+
+-(CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath{
+    return [GroupTableViewCell calculateCellHeightWithUser:self.shGroups[indexPath.row]];
+}
+
+-(UITableViewCell*)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath{
+    
+    GroupTableViewCell *groupTableViewCell= [tableView dequeueReusableCellWithIdentifier:@"groupTableViewCell"];
+    if(groupTableViewCell==nil){
+        groupTableViewCell = [[GroupTableViewCell alloc]initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"groupTableViewCell"];
+    }
+    groupTableViewCell.showGroup=self.shGroups[indexPath.row];
+    return groupTableViewCell;
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath{
+//    ActivityDetailViewController *activityDetailVC = [[ActivityDetailViewController alloc]init];
+//    activityDetailVC.lcActivity = self.lcActivitys[indexPath.row];
+//    activityDetailVC.shActivity = self.shActivitys[indexPath.row];
+//    [self.navigationController pushViewController:activityDetailVC animated:YES];
+    GroupDetailViewController *groupDetailViewController = [[GroupDetailViewController alloc]init];
+    SHGroup *shGroup = self.shGroups[indexPath.row];
+    WEAKSELF
+    [self showProgress];
+    [_im fecthConvWithId:shGroup.conversationId callback:^(AVIMConversation *conversation, NSError *error) {
+        [weakSelf hideProgress];
+        if (error) {
+            [weakSelf alert:@"获取对话失败 :("];
+        } else {
+            if (conversation.members.count>0) {
+                groupDetailViewController.conversion = conversation;
+                [weakSelf.navigationController pushViewController:groupDetailViewController animated:YES];
+
+            }else {
+                [weakSelf alert:@"此群可能已被删除 :("];
+            }
+        }
+        
+    }];
+}
+
+- (void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath{
+    if ([cell respondsToSelector:@selector(setSeparatorInset:)]) {
+        [cell setSeparatorInset:UIEdgeInsetsZero];
+    }
+    if ([cell respondsToSelector:@selector(setLayoutMargins:)]) {
+        [cell setLayoutMargins:UIEdgeInsetsZero];
+    }
+}
+
+
+@end

@@ -1,0 +1,2 @@
+PODS_AVOSCLOUDIM_LIBRARY_SEARCH_PATHS = "$(PODS_ROOT)/AVOSCloudIM"
+PODS_AVOSCLOUDIM_OTHER_LDFLAGS = $(inherited) -ObjC -undefined dynamic_lookup -l"AVOSCloudIMLib"

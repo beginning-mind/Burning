@@ -1,0 +1,21 @@
+//
+//  SettingsViewController.h
+//  Burning
+//
+//  Created by Xiang Li on 15/7/28.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "BaseViewController.h"
+
+@interface SettingsViewController : BaseViewController
+@property (weak, nonatomic) IBOutlet UIButton *cleanCacheButton;
+@property (weak, nonatomic) IBOutlet UIButton *checkoutUpdateButton;
+@property (weak, nonatomic) IBOutlet UIButton *exitCurrentAccountButton;
+
+- (IBAction)changePasswordAction:(id)sender;
+- (IBAction)cleanCacheAction:(id)sender;
+- (IBAction)checkoutUpdateAction:(id)sender;
+- (IBAction)exitCurrentAcountAction:(id)sender;
+
+@end

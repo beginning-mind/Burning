@@ -1,0 +1,179 @@
+//
+//  DailyNewsViewController.m
+//  Burning
+//
+//  Created by wei_zhu on 15/7/3.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "DailyNewsViewController.h"
+#import "DailyNewsTableViewCell.h"
+#import <FMDB/FMDB.h>
+#import "DailyNewsDetailViewController.h"
+#import "SVGloble.h"
+
+@interface DailyNewsViewController ()
+
+@property (strong, nonatomic)UITableView *tableView;
+
+@end
+
+@implementation DailyNewsViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    [self setNavControl];
+    
+    self.tableView = [[UITableView alloc]initWithFrame:CGRectMake(0, 0, [SVGloble shareInstance].globleWidth,[SVGloble shareInstance].globleAllHeight-kNavigationBarHeight-kStatusBarHeight) style:UITableViewStyleGrouped];
+    [self.view addSubview:self.tableView];
+    
+    self.tableView.separatorColor = [UIColor clearColor];
+    self.tableView.delegate = self;
+    self.tableView.dataSource = self;
+    [self loadData];
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+-(void)setNavControl{
+    self.title = @"分享";
+}
+
+-(void)loadData{
+    NSArray *documentsPaths=NSSearchPathForDirectoriesInDomains(NSDocumentDirectory
+                                                                , NSUserDomainMask
+                                                                , YES);
+    NSString *databaseFilePath=[[documentsPaths objectAtIndex:0] stringByAppendingPathComponent:@"DailyNews"];
+    
+    
+    
+    FMDatabase *db = [FMDatabase databaseWithPath:databaseFilePath];
+    if (![db open]) {
+        NSLog(@"db open failed");
+        [db close];
+        return;
+    }
+    FMResultSet *resultSet = [db executeQuery:[NSString stringWithFormat:@"select * from DailyNews order by time desc"]];
+    NSMutableArray *list = [[NSMutableArray alloc]init];
+    int i =0;
+    while ([resultSet next]) {
+        SHDailyNews  *dailyNews = [[SHDailyNews alloc]init];
+        dailyNews.title = [resultSet stringForColumn:@"title"];
+        dailyNews.abstract = [resultSet stringForColumn:@"abstract"];
+        dailyNews.coverUrl = [resultSet stringForColumn:@"coverUrl"];
+        dailyNews.time = [resultSet stringForColumn:@"time"];
+        dailyNews.contentUrl = [resultSet stringForColumn:@"contentUrl"];
+
+        [list addObject:dailyNews];
+
+    }
+    [db close];
+    [db closeOpenResultSets];
+    self.shDailyNews = list;
+    [self.tableView reloadData];
+}
+
+#pragma mark --TableViewDataSource Delegate
+
+-(NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section{
+    return 1;
+}
+
+-(NSInteger)numberOfSectionsInTableView:(UITableView *)tableView{
+    return self.shDailyNews.count;
+}
+
+-(UITableViewCell*)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath{
+    static NSString* cellIdentifer = @"DailyTableViewCellIdentifier";
+    DailyNewsTableViewCell *cell= [tableView dequeueReusableCellWithIdentifier:cellIdentifer];
+    if(cell==nil){
+        cell=[[DailyNewsTableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:cellIdentifer];
+    }
+    cell.indexPath=indexPath;
+    cell.shDailyNews=self.shDailyNews[indexPath.section];
+    
+    return cell;
+}
+
+- (UIView *)tableView:(UITableView *)tableView viewForHeaderInSection:(NSInteger)section{
+    UIView *view = [[UIView alloc]init];
+    UILabel *timeLabel = [[UILabel alloc]initWithFrame:CGRectMake(0, 0, self.view.frame.size.width, 30)];
+    SHDailyNews *dailyNews = self.shDailyNews[section];
+    timeLabel.text = dailyNews.time;
+    timeLabel.font = [UIFont systemFontOfSize:kCommonFontSize];
+    timeLabel.textColor = RGB(133, 133, 133);
+    timeLabel.textAlignment = NSTextAlignmentCenter;
+//    timeLabel.backgroundColor = [UIColor grayColor];
+    [view addSubview:timeLabel];
+    
+    return view;
+}
+
+
+-(CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath{
+    return [DailyNewsTableViewCell calculateCellHeightWithSHDailyNews:self.shDailyNews[indexPath.row]];
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath{
+    DailyNewsDetailViewController *dailyNewsDetailVC = [[DailyNewsDetailViewController alloc]init];
+    SHDailyNews *curDailyNews = self.shDailyNews[indexPath.row];
+    
+    dailyNewsDetailVC.url = curDailyNews.contentUrl;
+    [self.navigationController pushViewController:dailyNewsDetailVC animated:YES];
+}
+
+- (void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath{
+    if ([cell respondsToSelector:@selector(tintColor)]) {
+        if (tableView == self.tableView) {
+            CGFloat cornerRadius = 10.f;
+            cell.backgroundColor = UIColor.clearColor;
+            CAShapeLayer *layer = [[CAShapeLayer alloc] init];
+            CGMutablePathRef pathRef = CGPathCreateMutable();
+            CGRect bounds = CGRectInset(cell.bounds, 10, 0);
+            BOOL addLine = NO;
+            if (indexPath.row == 0 && indexPath.row == [tableView numberOfRowsInSection:indexPath.section]-1) {
+                CGPathAddRoundedRect(pathRef, nil, bounds, cornerRadius, cornerRadius);
+            } else if (indexPath.row == 0) {
+                CGPathMoveToPoint(pathRef, nil, CGRectGetMinX(bounds), CGRectGetMaxY(bounds));
+                CGPathAddArcToPoint(pathRef, nil, CGRectGetMinX(bounds), CGRectGetMinY(bounds), CGRectGetMidX(bounds), CGRectGetMinY(bounds), cornerRadius);
+                CGPathAddArcToPoint(pathRef, nil, CGRectGetMaxX(bounds), CGRectGetMinY(bounds), CGRectGetMaxX(bounds), CGRectGetMidY(bounds), cornerRadius);
+                CGPathAddLineToPoint(pathRef, nil, CGRectGetMaxX(bounds), CGRectGetMaxY(bounds));
+                addLine = YES;
+            } else if (indexPath.row == [tableView numberOfRowsInSection:indexPath.section]-1) {
+                CGPathMoveToPoint(pathRef, nil, CGRectGetMinX(bounds), CGRectGetMinY(bounds));
+                CGPathAddArcToPoint(pathRef, nil, CGRectGetMinX(bounds), CGRectGetMaxY(bounds), CGRectGetMidX(bounds), CGRectGetMaxY(bounds), cornerRadius);
+                CGPathAddArcToPoint(pathRef, nil, CGRectGetMaxX(bounds), CGRectGetMaxY(bounds), CGRectGetMaxX(bounds), CGRectGetMidY(bounds), cornerRadius);
+                CGPathAddLineToPoint(pathRef, nil, CGRectGetMaxX(bounds), CGRectGetMinY(bounds));
+            } else {
+                CGPathAddRect(pathRef, nil, bounds);
+                addLine = YES;
+            }
+            layer.path = pathRef;
+            CFRelease(pathRef);
+            layer.fillColor = [UIColor colorWithWhite:1.f alpha:0.8f].CGColor;
+            
+            if (addLine == YES) {
+                CALayer *lineLayer = [[CALayer alloc] init];
+                CGFloat lineHeight = (1.f / [UIScreen mainScreen].scale);
+                lineLayer.frame = CGRectMake(CGRectGetMinX(bounds)+10, bounds.size.height-lineHeight, bounds.size.width-10, lineHeight);
+                lineLayer.backgroundColor = tableView.separatorColor.CGColor;
+                [layer addSublayer:lineLayer];
+            }
+            UIView *testView = [[UIView alloc] initWithFrame:bounds];
+            [testView.layer insertSublayer:layer atIndex:0];
+            testView.backgroundColor = UIColor.clearColor;
+            cell.backgroundView = testView;
+        }
+    }
+}
+
+- (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section{
+    return 30;
+}
+- (CGFloat)tableView:(UITableView *)tableView heightForFooterInSection:(NSInteger)section{
+    return 30;
+}
+@end

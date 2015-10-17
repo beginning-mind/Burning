@@ -1,0 +1,544 @@
+//
+//  ActivityDetailHeaderView.m
+//  Burning
+//
+//  Created by wei_zhu on 15/6/23.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "ActivityDetailHeaderView.h"
+#import "LayoutConst.h"
+#import "SVGloble.h"
+#import <SDWebImage/UIImageView+WebCache.h>
+#import "LCActivityComment.h"
+
+#define ATTENDUSERIMAGEVIEWTAG 200
+#define COMMENTLABELTAG 300
+
+@interface ActivityDetailHeaderView()
+
+@property(nonatomic,strong) UIImageView *activityBg;
+@property(nonatomic,strong)UIImageView *avtarImgView;
+
+@property(nonatomic,strong) UILabel *activitytime;
+@property(nonatomic,strong) UILabel *activityTimeLabel;
+
+@property(nonatomic,strong) UILabel *place;
+@property(nonatomic,strong) UILabel *placeLabel;
+
+@property(nonatomic,strong) UILabel *maxPerson;
+@property(nonatomic,strong) UILabel *maxPersonLabel;
+
+@property(nonatomic,strong) UILabel *coast;
+@property(nonatomic,strong) UILabel *coastLabel;
+
+@property(nonatomic,strong) UILabel *content;
+@property(nonatomic,strong) UILabel *contentLabel;
+
+@property(nonatomic,strong) UILabel *attendedUser;
+@property(nonatomic,strong) UILabel *attendedUserLabel;
+
+@property(nonatomic,strong)UIView *attendedUsersView;
+
+@property(nonatomic,strong) UIButton *commentButton;
+
+@property(nonatomic,strong)UILabel *commentCountLable;
+
+@property(nonatomic,strong)UIImageView *commentView;
+
+@property(nonatomic,strong)UIView *seprator1;
+@property(nonatomic,strong)UIView *seprator2;
+@property(nonatomic,strong)UIView *seprator3;
+
+
+@end
+
+@implementation ActivityDetailHeaderView
+
+//+(NSFont*)contentFont{
+//    return  [UIFont systemFontOfSize:kPubShowFontSize];
+//}
+
++(CGFloat)contentWidth{
+    return CGRectGetWidth([[UIScreen mainScreen] bounds])-3*kCommonSpace-56;
+}
+
++(CGFloat)getContentLabelHeightWithText:(NSString*)text controlWidth:(CGFloat)width fontSize:(CGFloat)fontSize{
+    if(text==nil){
+        return 0;
+    }
+    return [self getLabelHeightWithText:text maxWidth:width font:[UIFont systemFontOfSize:fontSize]];
+}
+
++(CGFloat)getLabelHeightWithText:(NSString*)text maxWidth:(CGFloat)maxWidth font:(NSFont*)font{
+    return [text boundingRectWithSize:CGSizeMake(maxWidth,CGFLOAT_MAX) options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName:font} context:nil].size.height;
+}
+
+-(UIView*)seprator1{
+    if (_seprator1==nil) {
+        _seprator1 = [[UIView alloc]initWithFrame:CGRectZero];
+        _seprator1.backgroundColor = [UIColor colorWithRed:0.89 green:0.89 blue:0.90 alpha:1.0];
+    }
+    return _seprator1;
+}
+-(UIView*)seprator2{
+    if (_seprator2==nil) {
+        _seprator2 = [[UIView alloc]initWithFrame:CGRectZero];
+        _seprator2.backgroundColor = [UIColor colorWithRed:0.89 green:0.89 blue:0.90 alpha:1.0];
+    }
+    return _seprator2;
+}
+-(UIView*)seprator3{
+    if (_seprator3==nil) {
+        _seprator3 = [[UIView alloc]initWithFrame:CGRectZero];
+        _seprator3.backgroundColor = [UIColor colorWithRed:0.89 green:0.89 blue:0.90 alpha:1.0];
+    }
+    return _seprator3;
+}
+
+-(UIImageView*)activityBg{
+    if (_activityBg==nil) {
+        _activityBg = [[UIImageView alloc]initWithFrame:CGRectMake(0, 0, self.frame.size.width, kBackgroudViewHeight)];
+        [_activityBg setImage:[UIImage imageNamed:@"ac_createBg.jpg"]];
+        _activityBg.userInteractionEnabled = YES;
+        _avtarImgView = [[UIImageView alloc]initWithFrame:CGRectMake(kLargeAvatarLeadingSpace, kLargeAvatarLeadingSpace, kLagerAvatarSize, kLagerAvatarSize)];
+        _avtarImgView.layer.masksToBounds =YES;
+        _avtarImgView.layer.cornerRadius =kLagerAvatarSize/2.0;
+        _avtarImgView.userInteractionEnabled = YES;
+        [_activityBg addSubview:_avtarImgView];
+    }
+    return _activityBg;
+}
+
+-(UILabel*)activitytime{
+    if (_activitytime==nil) {
+        _activitytime = [[UILabel alloc]initWithFrame:CGRectMake(kCommonSpace, CGRectGetMaxY(self.activityBg.frame)+ kCommonSpace, 56, 18)];
+        _activitytime.font = [UIFont systemFontOfSize:kCommonFontSize];
+        _activitytime.textColor=RGB(0, 0, 0);
+        _activitytime.text=@"集合时间";
+    }
+    return _activitytime;
+}
+-(UILabel*)activityTimeLabel{
+    if(_activityTimeLabel==nil){
+        _activityTimeLabel = [[UILabel alloc]initWithFrame:CGRectMake(2.0*kCommonSpace+56, CGRectGetMaxY(self.activityBg.frame)+ kCommonSpace, [[self class] contentWidth], 18)];
+        _activityTimeLabel.backgroundColor=[UIColor clearColor];
+        _activityTimeLabel.font  = [UIFont systemFontOfSize:kCommonFontSize];
+        _activityTimeLabel.textColor=RGB(0, 0, 0);
+        _activityTimeLabel.textAlignment = NSTextAlignmentRight;
+    }
+    return _activityTimeLabel;
+}
+
+-(UILabel*)place{
+    if (_place==nil) {
+        _place = [[UILabel alloc]initWithFrame:CGRectMake(kCommonSpace,CGRectGetMaxY(self.activitytime.frame)+kSmallSpace,56, 18)];
+        _place.font = [UIFont systemFontOfSize:kCommonFontSize];
+        _place.textColor=RGB(0, 0, 0);
+        _place.text=@"集合地点";
+    }
+    return _place;
+}
+-(UILabel*)placeLabel{
+    if (_placeLabel==nil) {
+        _placeLabel = [[UILabel alloc]initWithFrame:CGRectZero];
+        _placeLabel.backgroundColor=[UIColor clearColor];
+        _placeLabel.font = [UIFont systemFontOfSize:kCommonFontSize];
+        _placeLabel.textColor=RGB(0, 0, 0);
+        _placeLabel.textAlignment = NSTextAlignmentRight;
+    }
+    return _placeLabel;
+}
+
+-(UILabel*)maxPerson{
+    if (_maxPerson==nil) {
+        _maxPerson = [[UILabel alloc]initWithFrame:CGRectZero];
+        _maxPerson.font = [UIFont systemFontOfSize:kCommonFontSize];
+        _maxPerson.textColor=RGB(0, 0, 0);
+        _maxPerson.text=@"人数上限";
+    }
+    return _maxPerson;
+}
+-(UILabel*)maxPersonLabel{
+    if (_maxPersonLabel==nil) {
+        _maxPersonLabel = [[UILabel alloc]initWithFrame:CGRectZero];
+        _maxPersonLabel.backgroundColor=[UIColor clearColor];
+        _maxPersonLabel.font = [UIFont systemFontOfSize:kCommonFontSize];
+        _maxPersonLabel.textColor=RGB(0, 0, 0);
+        _maxPersonLabel.textAlignment = NSTextAlignmentRight;
+    }
+    return _maxPersonLabel;
+}
+
+-(UILabel*)coast{
+    if (_coast==nil) {
+        _coast = [[UILabel alloc]initWithFrame:CGRectZero];
+        _coast.font = [UIFont systemFontOfSize:kCommonFontSize];
+        _coast.textColor=RGB(0, 0, 0);
+        _coast.text=@"费用";
+    }
+    return _coast;
+}
+-(UILabel*)coastLabel{
+    if (_coastLabel==nil) {
+        _coastLabel = [[UILabel alloc]initWithFrame:CGRectZero];
+        _coastLabel.font = [UIFont systemFontOfSize:kCommonFontSize];
+        _coastLabel.backgroundColor=[UIColor clearColor];
+        _coastLabel.textColor=RGB(0, 0, 0);
+        _coastLabel.textAlignment = NSTextAlignmentRight;
+    }
+    return _coastLabel;
+}
+
+-(UILabel*)content{
+    if (_content==nil) {
+        _content = [[UILabel alloc]initWithFrame:CGRectZero];
+        _content.font = [UIFont systemFontOfSize:kCommonFontSize];
+        _content.textColor=RGB(0, 0, 0);
+        _content.text=@"说明";
+    }
+    return _content;
+}
+-(UILabel*)contentLabel{
+    if (_contentLabel ==nil) {
+        _contentLabel = [[UILabel alloc]initWithFrame:CGRectZero];
+        _contentLabel.font = [UIFont systemFontOfSize:kSmallFontSize];
+        _contentLabel.backgroundColor=[UIColor clearColor];
+        _contentLabel.textColor=RGB(0, 0, 0);
+        _contentLabel.numberOfLines=0;
+    }
+    return _contentLabel;
+}
+
+-(UILabel*)attendedUser{
+    if (_attendedUser==nil) {
+        _attendedUser = [[UILabel alloc]initWithFrame:CGRectZero];
+        _attendedUser.font = [UIFont systemFontOfSize:kCommonFontSize];
+        _attendedUser.textColor = RGB(0, 0, 0);
+        _attendedUser.text = @"已加入成员";
+    }
+    return _attendedUser;
+}
+-(UILabel*)attendedUserLabel{
+    if (_attendedUserLabel ==nil) {
+        _attendedUserLabel = [[UILabel alloc]initWithFrame:CGRectZero];
+        _attendedUserLabel.backgroundColor=[UIColor clearColor];
+        _attendedUserLabel.textColor=RGB(0, 0, 0);
+        _attendedUserLabel.font = [UIFont systemFontOfSize:kCommonFontSize];
+        _attendedUserLabel.textAlignment = NSTextAlignmentRight;
+    }
+    return _attendedUserLabel;
+}
+
+-(UIView*)attendedUsersView{
+    if (_attendedUsersView==nil) {
+        _attendedUsersView = [[UIView alloc]initWithFrame:CGRectZero];
+    }
+    return  _attendedUsersView;
+}
+
+-(UIButton*)commentButton{
+    if(_commentButton==nil){
+        _commentButton=[[UIButton alloc] initWithFrame:CGRectZero];
+        [_commentButton setImage:[UIImage imageNamed:@"pl_chat"] forState:UIControlStateNormal];
+        [_commentButton addTarget:self action:@selector(commentButtonClick:) forControlEvents:UIControlEventTouchUpInside];
+    }
+    return _commentButton;
+}
+-(UILabel*)commentCountLable{
+    if(_commentCountLable==nil){
+        _commentCountLable=[[UILabel alloc] initWithFrame:CGRectZero];
+        _commentCountLable.textAlignment = NSTextAlignmentLeft;
+        _commentCountLable.font=[UIFont systemFontOfSize:kSmallFontSize];
+        _commentCountLable.textColor=RGB(0, 0, 0);
+    }
+    return _commentCountLable;
+}
+
+-(UIImageView*)commentView{
+    if (_commentView==nil) {
+        _commentView = [[UIImageView alloc]initWithFrame:CGRectZero];
+        _commentView.image = [UIImage imageNamed:@"co_comment_bg"];
+        _commentView.userInteractionEnabled = true;
+    }
+    return  _commentView;
+}
+
+-(instancetype)initWithFrame:(CGRect)frame{
+    self = [super initWithFrame:frame];
+    if (self) {
+        [self setup];
+    }
+    return self;
+}
+
+-(void) setup{
+    [self addSubview:self.activityBg];
+    
+    [self addSubview:self.activitytime];
+    [self addSubview:self.activityTimeLabel];
+    
+    [self addSubview:self.place];
+    [self addSubview:self.placeLabel];
+    
+    [self addSubview:self.maxPerson];
+    [self addSubview:self.maxPersonLabel];
+    
+    [self addSubview:self.coast];
+    [self addSubview:self.coastLabel];
+    
+    [self addSubview:self.content];
+    [self addSubview:self.contentLabel];
+    
+    [self addSubview:self.attendedUser];
+    [self addSubview:self.attendedUserLabel];
+    [self addSubview:self.attendedUsersView];
+    
+    [self addSubview:self.commentButton];
+    [self addSubview:self.commentCountLable];
+    [self addSubview:self.commentView];
+    
+    [self addSubview:self.seprator1];
+    [self addSubview:self.seprator2];
+    [self addSubview:self.seprator3];
+}
+
+-(void)setLcActivity:(LCActivity *)lcActivity{
+    _lcActivity = lcActivity;
+    NSString *url = _lcActivity.backGroundFile.url;
+    //test backgroud image
+    [self.avtarImgView sd_setImageWithURL:[NSURL URLWithString:url] placeholderImage:[UIImage imageNamed:@""]];
+    
+    
+    
+    NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
+    formatter.dateFormat = @"yyyy-MM-dd HH:mm";
+    self.activityTimeLabel.text =[formatter stringFromDate:lcActivity.activityDate];
+    self.placeLabel.text =lcActivity.place;
+    self.coastLabel.text = lcActivity.coast;
+    if (lcActivity.content==nil || [lcActivity.content isEqualToString:@""])
+    {
+        self.contentLabel.text = @"无";
+    }
+    else{
+        self.contentLabel.text = lcActivity.content;
+    }
+    
+    self.maxPersonLabel.text = lcActivity.maxPersonCount;
+    
+    self.attendedUserLabel.text = [NSString stringWithFormat:@"%lu/%@",(unsigned long)lcActivity.attendUsers.count,lcActivity.maxPersonCount];
+    
+    [self.commentButton setTitle:@"评论" forState:UIControlStateNormal];
+    self.commentCountLable.text = [NSString stringWithFormat:@"%lu",(unsigned long)lcActivity.comments.count];
+    
+    [self loadAttendedUsers];
+    [self loadCommentView];
+    
+    [self setNeedsLayout];
+}
+
+-(void)loadAttendedUsers{
+    for (UIView *view in self.attendedUsersView.subviews) {
+        [view removeFromSuperview];
+    }
+    int avatarCount = ([SVGloble shareInstance].globleWidth-2*kCommonAvatarLeadingSpace-kCommonAvatarSize)/(kCommonAvatarSize+kCommonAvatarHorizalSpace);
+    //CGFloat size = ([SVGloble shareInstance].globleWidth-2*kHotAvatarSpacing-kLikeUserAvataSpcing*(kShowLikeUserCount-1))/kShowLikeUserCount;
+    CGFloat x = 0.0;
+    int z= 0;
+    for (AVUser *attendUser in _lcActivity.attendUsers) {
+        x = 0+z*(kCommonAvatarSize+kCommonAvatarHorizalSpace);
+        UIImageView *imageView =[[UIImageView alloc]initWithFrame:CGRectMake(x, 0, kCommonAvatarSize, kCommonAvatarSize)];
+        int tag =ATTENDUSERIMAGEVIEWTAG+z;
+        imageView.tag =tag;
+        imageView.layer.masksToBounds = YES;
+        imageView.layer.cornerRadius = kCommonAvatarSize/2.0;
+        imageView.userInteractionEnabled = YES;
+        [self.attendedUsersView addSubview:imageView];
+        if (z==avatarCount && _lcActivity.attendUsers.count>avatarCount) {
+            
+            //添加更多按钮
+            imageView.image = [UIImage imageNamed:@""];
+            UITapGestureRecognizer *singleTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(moreUserClick:)];
+            [imageView addGestureRecognizer:singleTap];
+            break;
+        }
+        else{
+            
+            AVFile *avtarFile = [attendUser objectForKey:@"avatar"];
+            
+            [imageView sd_setImageWithURL:[NSURL URLWithString:avtarFile.url] placeholderImage:[UIImage imageNamed:@"blank_avatar.jpg"]];
+            UITapGestureRecognizer *singleTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(attendedUserClick:)];
+            [imageView addGestureRecognizer:singleTap];
+            if (z==0) {
+                UIImageView *tagImageView = [[UIImageView alloc]initWithFrame:CGRectMake(CGRectGetMinX(imageView.frame)+25, CGRectGetMinY(imageView.frame)+25, 14, 10)];
+                tagImageView.image = [UIImage imageNamed:@"co_master"];
+                [self.attendedUsersView addSubview:tagImageView];
+            }
+        }
+        z++;
+    }
+    
+}
+
+-(void)loadCommentView{
+    
+    for (UIView *view in self.commentView.subviews) {
+        [view removeFromSuperview];
+    }
+    int i = 0;
+    CGFloat y = kSmallSpace;
+    for (LCActivityComment *comment in _lcActivity.comments) {
+        if (i>3) {
+            if (_lcActivity.comments.count>4) {
+                UIButton *button = [[UIButton alloc]initWithFrame:CGRectMake(kSmallSpace, y, kMoreCommentButtonWidth,kMoreCommentButtonHeight)];
+                [button setTitle:@"查看更多评论" forState:UIControlStateNormal];
+                [button setTitleColor:RGB(0,108,255) forState:UIControlStateNormal];
+                button.titleLabel.font = [UIFont systemFontOfSize: kSmallFontSize];
+                button.contentHorizontalAlignment=UIControlContentHorizontalAlignmentLeft;
+                [button addTarget:self action:@selector(commentButtonClick:) forControlEvents:UIControlEventTouchUpInside];
+                [self.commentView addSubview:button];
+            }
+            break;
+        }
+        
+        NSString *commentUserName;
+        AVUser *commentUser;
+        @try {
+            commentUser = _lcActivity.commentUsers[i];
+            commentUserName =commentUser.username;
+        }
+        @catch (NSException *exception) {
+            commentUserName = @"null";
+        }
+        NSString *commentContent = comment.commentContent;
+        NSString *content = [NSString stringWithFormat:@"%@ %@",commentUserName,commentContent];
+        
+        NSMutableAttributedString *str = [[NSMutableAttributedString alloc] initWithString:content];
+        [str addAttribute:NSForegroundColorAttributeName value:RGB(133, 133, 133) range:NSMakeRange(0,commentUserName.length)];
+        
+        NSError *error = NULL;
+        NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"\\s回复\\s(\\S+?)\\s" options:NSRegularExpressionCaseInsensitive error:&error];
+        NSTextCheckingResult *result = [regex firstMatchInString:content options:0 range:NSMakeRange(0, [content length])];
+        if (result) {
+            NSLog(@"%@:%d\n", [content substringWithRange:result.range],result.range.length);
+            NSInteger start = result.range.location+4;
+            NSInteger lenght = result.range.length -5;
+            [str addAttribute:NSForegroundColorAttributeName value:RGB(133, 133, 133) range:NSMakeRange(start,lenght)];
+        }
+
+        
+        CGFloat height = [[self class] getContentLabelHeightWithText:content controlWidth:CGRectGetWidth([[UIScreen mainScreen] bounds])-2*kCommonAvatarLeadingSpace-2*kSmallSpace fontSize:kSmallFontSize];
+        UILabel *label  = [[UILabel alloc]initWithFrame:CGRectMake(kSmallSpace, y, CGRectGetWidth([[UIScreen mainScreen] bounds])-2*kCommonAvatarLeadingSpace-2*kSmallSpace, height)];
+        label.text = content;
+        label.font=[UIFont systemFontOfSize:kSmallFontSize];
+        label.numberOfLines = 0;
+        label.tag = i+COMMENTLABELTAG;
+        //label.backgroundColor = [UIColor grayColor];
+        label.attributedText = str;
+        label.userInteractionEnabled =YES;
+        UITapGestureRecognizer *singleTap = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(commentClick:)];
+        [label addGestureRecognizer:singleTap];
+        [self.commentView addSubview:label];
+        y+=height;
+        y+=kSmallTextVerticSpace;
+        i++;
+    }
+    
+}
+
+-(void)layoutSubviews{
+    [super layoutSubviews];
+    _placeLabel.frame = CGRectMake(CGRectGetMaxX(_place.frame)+kCommonSpace, CGRectGetMinY(_place.frame),[[self class] contentWidth], [[self class] getContentLabelHeightWithText:_placeLabel.text controlWidth:[[self class] contentWidth] fontSize:kCommonFontSize]);
+    
+    _maxPerson.frame= CGRectMake(kCommonSpace, CGRectGetMaxY(_placeLabel.frame)+kSmallSpace, 56, 18);
+    _maxPersonLabel.frame = CGRectMake(CGRectGetMaxX(_maxPerson.frame)+kCommonSpace, CGRectGetMinY(_maxPerson.frame), [[self class] contentWidth], 18);
+    
+    _coast.frame = CGRectMake(kCommonSpace, CGRectGetMaxY(_maxPerson.frame)+kSmallSpace, 56, 18);
+    _coastLabel.frame = CGRectMake(CGRectGetMaxX(_coast.frame)+kCommonSpace, CGRectGetMinY(_coast.frame), [[self class] contentWidth], 18);
+    
+    _seprator1.frame = CGRectMake(0, CGRectGetMaxY(_coast.frame)+kCommonSpace,self.frame.size.width,0.5);
+    
+    _content.frame = CGRectMake(kCommonSpace, CGRectGetMaxY(_seprator1.frame)+kCommonSpace, 56, 18);
+    _contentLabel.frame = CGRectMake(kCommonSpace, CGRectGetMaxY(_content.frame)+kCommonSpace, CGRectGetWidth([[UIScreen mainScreen] bounds])-2*kCommonAvatarLeadingSpace, [[self class] getContentLabelHeightWithText:_contentLabel.text controlWidth:[[self class] contentWidth] fontSize:kSmallFontSize]);
+    
+    _seprator2.frame = CGRectMake(0, CGRectGetMaxY(_contentLabel.frame)+kCommonSpace, self.frame.size.width, 0.5);
+    
+    _attendedUser.frame = CGRectMake(kCommonSpace, CGRectGetMaxY(_contentLabel.frame)+2*kCommonSpace, 70, 18);
+    _attendedUserLabel.frame = CGRectMake(CGRectGetMaxX(_attendedUser.frame)+kCommonSpace, CGRectGetMinY(_attendedUser.frame),[[self class] contentWidth]-14, 18);
+    
+    CGFloat maxY = CGRectGetMaxY(_attendedUserLabel.frame);
+    //digUsersAvata
+    self.attendedUsersView.frame = CGRectMake(kCommonAvatarLeadingSpace, maxY+kSmallSpace, CGRectGetWidth([[UIScreen mainScreen] bounds])-2*kCommonAvatarLeadingSpace,kCommonAvatarSize);
+    maxY = CGRectGetMaxY(self.attendedUsersView.frame);
+    
+    _seprator3.frame = CGRectMake(0, maxY+kCommonSpace, self.frame.size.width, 0.5);
+    
+    maxY = CGRectGetMaxY(_seprator3.frame);
+    
+    _commentButton.frame = CGRectMake(kCommonSpace, maxY+kCommonSpace, kPubShowCommentButtonWidth, kPubShowCommentButtonHeight);
+    _commentCountLable.frame = CGRectMake(CGRectGetMaxX(_commentButton.frame)+kPubShowContentLineSpacing, CGRectGetMinY(self.commentButton.frame), 70, kPubShowCommentButtonHeight);
+
+    maxY = CGRectGetMaxY(_commentButton.frame);
+    
+    //commentView
+    int i =0;
+    CGFloat commnetViewHeight = 0.0;
+    for (UIView *label in self.commentView.subviews) {
+        commnetViewHeight+=kSmallTextVerticSpace;
+        commnetViewHeight+=CGRectGetHeight(label.frame);
+        i++;
+    }
+    if (i>0) {
+        commnetViewHeight+=12;
+        self.commentView.frame = CGRectMake(kCommonAvatarLeadingSpace, maxY+kSmallTextVerticSpace, CGRectGetWidth(_attendedUsersView.frame), commnetViewHeight);
+        maxY  = CGRectGetMaxY(self.commentView.frame);
+    }
+    else{
+        self.commentView.frame = CGRectMake(kCommonSpace, maxY, CGRectGetWidth(_attendedUsersView.frame), 0);
+    }
+    
+    if (maxY+kCommonSpace+53>[SVGloble shareInstance].globleAllHeight-kStatusBarHeight-kNavigationBarHeight) {
+        self.contentSize = CGSizeMake(self.frame.size.width, maxY+kCommonSpace+kStatusBarHeight);
+    }
+    else{
+        self.contentSize =CGSizeZero;
+    }
+//    CGRect frame=self.frame;
+//    frame.size.height=maxY+kCommonSpace;
+//    self.frame=frame;
+}
+
+#pragma mark action
+-(void)attendedUserClick:(UIGestureRecognizer*)gestureRecognizer{
+    NSInteger tag = gestureRecognizer.view.tag;
+    if ([_activityDetailHeaderViewDelegate respondsToSelector:@selector(didAttendedUserImageViewClick:)]) {
+        [_activityDetailHeaderViewDelegate didAttendedUserImageViewClick:tag-ATTENDUSERIMAGEVIEWTAG];
+    }
+}
+
+-(void)moreUserClick:(UIGestureRecognizer*)gestureRecognizer{
+    
+}
+
+-(void)commentButtonClick:(UIButton*)button{
+    if ([_activityDetailHeaderViewDelegate respondsToSelector:@selector(didCommentButtonClick:)]) {
+        [_activityDetailHeaderViewDelegate didCommentButtonClick:-1];
+    }
+}
+
+-(void)commentClick:(UIGestureRecognizer*)gestureRecognizer{
+    NSInteger tag = gestureRecognizer.view.tag;
+    if ([_activityDetailHeaderViewDelegate respondsToSelector:@selector(didCommentButtonClick:)]) {
+        [_activityDetailHeaderViewDelegate didCommentButtonClick:tag-COMMENTLABELTAG];
+    }
+}
+
+-(void)attendedReqBtnClick:(UIButton*)button{
+    
+}
+
+-(void)cancelActivityBtnClick:(UIButton*)button{
+    
+}
+
+@end

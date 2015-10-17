@@ -1,0 +1,165 @@
+//
+//  ShowGroupMemberListTableViewCell.m
+//  Burning
+//
+//  Created by Xiang Li on 15/6/27.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "GroupMembersTableViewCell.h"
+#import "LayoutConst.h"
+#import <SDWebImage/UIImageView+WebCache.h>
+#import "SVGloble.h"
+
+@interface GroupMembersTableViewCell()
+
+@property (nonatomic,strong)UIImageView *avatarImageView;
+@property (nonatomic,strong)UILabel *usernameLabel;
+@property (nonatomic,strong)UILabel *sigNatureLabel;
+
+@end
+
+
+@implementation GroupMembersTableViewCell
+
+- (void)awakeFromNib {
+}
+
+-(id)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier{
+    
+    self=[super initWithStyle:style reuseIdentifier:reuseIdentifier];
+    if(self){
+        [self setup];
+    }
+    return self;
+}
+
+- (void)setSelected:(BOOL)selected animated:(BOOL)animated {
+    [super setSelected:selected animated:animated];
+
+}
+
++(NSFont*)contentFont{
+    return  [UIFont systemFontOfSize:kPubShowFontSize];
+}
+
++(CGFloat)getContentLabelHeightWithText:(NSString*)text{
+    if(text==nil){
+        return 0;
+    }
+    return [self getLabelHeightWithText:text maxWidth:[[self class] contentWidth] font:[self contentFont]];
+}
+
++(CGFloat)contentWidth{
+    return CGRectGetWidth([[UIScreen mainScreen] bounds])-3*kPubShowAvatarSpacing-kPubShowAvatarImageSize;
+}
+
++(CGFloat)getLabelHeightWithText:(NSString*)text maxWidth:(CGFloat)maxWidth font:(NSFont*)font{
+    return [text boundingRectWithSize:CGSizeMake(maxWidth,CGFLOAT_MAX) options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName:font} context:nil].size.height;
+}
+
++(CGFloat)calculateCellHeightWithUser:(AVUser*)user{
+    if(user==nil){
+        return 0;
+    }
+    CGFloat richTextHeight=kPubShowAvatarSpacing;
+    richTextHeight+=kPubShowUsernameHeight;
+    richTextHeight+=kPubShowContentLineSpacing;
+    NSString *signature;
+    if ([user objectForKey:@"signature"]==nil || [[user objectForKey:@"signature"] isEqualToString:@""]) {
+        signature = @"ta只要人鱼线，不要签名";
+    }
+    else{
+        signature = [user objectForKey:@"signature"];
+    }
+    
+    richTextHeight+=[[self class] getContentLabelHeightWithText:signature];
+    richTextHeight+=kPubShowAvatarSpacing;
+    
+    CGFloat avatarSize = 2*kPubShowAvatarSpacing+kPubShowAvatarImageSize;
+    return richTextHeight>avatarSize? richTextHeight :avatarSize;
+}
+
+#pragma mark UI
+-(UIImageView*)avatarImageView{
+    
+    if(_avatarImageView==nil){
+        _avatarImageView=[[UIImageView alloc] initWithFrame:CGRectMake(kLikeUserAvataSpcing,kLikeUserAvataSpcing, kCommonAvatarSize, kCommonAvatarSize)];
+        
+//        _avatarImageView.layer.masksToBounds =YES;
+//        _avatarImageView.layer.cornerRadius =kCommonAvatarSize/2.0;
+        _avatarImageView.userInteractionEnabled = YES;
+        
+        UITapGestureRecognizer *singleTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(avatarClick:)];
+        [_avatarImageView addGestureRecognizer:singleTap];
+    }
+    return _avatarImageView;
+}
+
+-(UILabel*)usernameLabel{
+    if(_usernameLabel==nil){
+        _usernameLabel=[[UILabel alloc] initWithFrame:CGRectMake(CGRectGetMaxX(_avatarImageView.frame)+kPubShowAvatarSpacing, kPubShowAvatarSpacing,[[self class] contentWidth] , kPubShowUsernameHeight)];
+        
+        _usernameLabel.backgroundColor=[UIColor clearColor];
+        _usernameLabel.textColor=[UIColor blackColor];
+        _usernameLabel.font = [UIFont systemFontOfSize:kCommonFontSize];
+    }
+    return _usernameLabel;
+}
+
+
+-(UILabel*)sigNatureLabel{
+    if(!_sigNatureLabel){
+        _sigNatureLabel=[[UILabel alloc] initWithFrame:CGRectMake(CGRectGetMinX(_usernameLabel.frame), CGRectGetMaxY(_usernameLabel.frame)+kPubShowContentLineSpacing, CGRectGetWidth(_usernameLabel.frame), 10)];
+        
+        _sigNatureLabel.font=[UIFont systemFontOfSize:kCommonFontSize];
+        _sigNatureLabel.backgroundColor=[UIColor clearColor];
+        _sigNatureLabel.textColor = [UIColor grayColor];
+        
+        _sigNatureLabel.numberOfLines=0;
+    }
+    return _sigNatureLabel;
+}
+
+-(void)setup{
+    [self addSubview:self.avatarImageView];
+    [self addSubview:self.usernameLabel];
+    [self addSubview:self.sigNatureLabel];
+}
+
+-(void)setUser:(AVUser *)user{
+    _user = user;
+    
+    AVFile *avFile = [user objectForKey:@"avatar"];
+    [self.avatarImageView setImageWithURL:[NSURL URLWithString:avFile.url] placeholderImage:[UIImage imageNamed:@"blank_avatar.jpg"]];
+    
+    self.usernameLabel.text = user.username;
+    NSString *signature= [user objectForKey:@"signature"];
+    if (signature==nil || [signature isEqualToString:@""]) {
+        self.sigNatureLabel.text = @"ta只要人鱼线，不要签名";
+    }
+    else{
+        self.sigNatureLabel.text  = signature;
+    }
+    
+    [self setNeedsLayout];
+}
+
+-(void)layoutSubviews{
+    [super layoutSubviews];
+    
+    NSString *signature= [_user objectForKey:@"signature"];
+    if (signature ==nil || [signature isEqualToString:@""]) {
+        signature =@"ta只要人鱼线，不要签名";
+    }
+    _sigNatureLabel.frame = CGRectMake(CGRectGetMinX(_usernameLabel.frame), CGRectGetMaxY(_usernameLabel.frame)+kPubShowContentLineSpacing, CGRectGetWidth(_usernameLabel.frame), [[self class] getContentLabelHeightWithText:signature]);
+}
+
+#pragma mark action
+-(void)avatarClick:(UIGestureRecognizer*)gestureRecognizer{
+    if ([_addUserTableViewCellDelegate respondsToSelector:@selector(didAvatarImageViewClick:indexPath:)]) {
+        [_addUserTableViewCellDelegate didAvatarImageViewClick:gestureRecognizer indexPath:self.indexPath];
+    }
+}
+
+@end

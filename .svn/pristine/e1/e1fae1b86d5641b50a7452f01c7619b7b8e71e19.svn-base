@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="7702" systemVersion="14E46" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES">
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="7701"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="ActivityCommentViewController">
+            <connections>
+                <outlet property="commentTableView" destination="ylt-FK-Myf" id="nnT-pi-JkY"/>
+                <outlet property="replyCommentText" destination="KIq-Tt-7Wl" id="3cz-FG-IKw"/>
+                <outlet property="replyInputBgView" destination="dsU-Yf-KDK" id="beI-F5-lwF"/>
+                <outlet property="sendBtn" destination="gcP-w8-qIw" id="gFS-nL-bm7"/>
+                <outlet property="view" destination="i5M-Pr-FkT" id="sfx-zR-JGt"/>
+            </connections>
+        </placeholder>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <view clearsContextBeforeDrawing="NO" contentMode="scaleToFill" id="i5M-Pr-FkT">
+            <rect key="frame" x="0.0" y="0.0" width="600" height="600"/>
+            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+            <subviews>
+                <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" style="plain" separatorStyle="default" rowHeight="44" sectionHeaderHeight="22" sectionFooterHeight="22" translatesAutoresizingMaskIntoConstraints="NO" id="ylt-FK-Myf">
+                    <rect key="frame" x="0.0" y="0.0" width="600" height="560"/>
+                    <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                </tableView>
+                <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="dsU-Yf-KDK">
+                    <rect key="frame" x="0.0" y="560" width="600" height="40"/>
+                    <subviews>
+                        <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="gcP-w8-qIw">
+                            <rect key="frame" x="562" y="5" width="30" height="30"/>
+                            <constraints>
+                                <constraint firstAttribute="width" constant="30" id="AMF-cj-QRP"/>
+                                <constraint firstAttribute="height" constant="30" id="we6-b7-l5C"/>
+                            </constraints>
+                            <state key="normal" title="发送">
+                                <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
+                            </state>
+                            <connections>
+                                <action selector="sendBtnClick:" destination="-1" eventType="touchUpInside" id="xFZ-NY-v3y"/>
+                            </connections>
+                        </button>
+                        <textField opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="KIq-Tt-7Wl">
+                            <rect key="frame" x="8" y="5" width="546" height="30"/>
+                            <constraints>
+                                <constraint firstAttribute="height" constant="30" id="rXM-q7-kja"/>
+                            </constraints>
+                            <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                            <textInputTraits key="textInputTraits"/>
+                        </textField>
+                    </subviews>
+                    <color key="backgroundColor" red="0.87450980392156863" green="0.87450980392156863" blue="0.87450980392156863" alpha="1" colorSpace="calibratedRGB"/>
+                    <constraints>
+                        <constraint firstAttribute="bottom" secondItem="gcP-w8-qIw" secondAttribute="bottom" constant="5" id="0m3-Xc-rXg"/>
+                        <constraint firstAttribute="trailing" secondItem="gcP-w8-qIw" secondAttribute="trailing" constant="8" id="WV3-Rj-U2f"/>
+                        <constraint firstItem="gcP-w8-qIw" firstAttribute="top" secondItem="dsU-Yf-KDK" secondAttribute="top" constant="5" id="fAY-Ka-8Ny"/>
+                        <constraint firstItem="KIq-Tt-7Wl" firstAttribute="top" secondItem="dsU-Yf-KDK" secondAttribute="top" constant="5" id="hnJ-Er-efg"/>
+                        <constraint firstAttribute="bottom" secondItem="KIq-Tt-7Wl" secondAttribute="bottom" constant="5" id="jhN-6x-OqQ"/>
+                        <constraint firstItem="gcP-w8-qIw" firstAttribute="leading" secondItem="KIq-Tt-7Wl" secondAttribute="trailing" constant="8" id="pxj-zz-uIp"/>
+                        <constraint firstItem="KIq-Tt-7Wl" firstAttribute="leading" secondItem="dsU-Yf-KDK" secondAttribute="leading" constant="8" id="zq8-vR-d6V"/>
+                    </constraints>
+                </view>
+            </subviews>
+            <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
+            <constraints>
+                <constraint firstAttribute="bottom" secondItem="ylt-FK-Myf" secondAttribute="bottom" constant="40" id="81b-Sg-rjK"/>
+                <constraint firstItem="ylt-FK-Myf" firstAttribute="top" secondItem="i5M-Pr-FkT" secondAttribute="top" id="96F-SJ-bug"/>
+                <constraint firstAttribute="trailing" secondItem="dsU-Yf-KDK" secondAttribute="trailing" id="Pmv-vI-2Qg"/>
+                <constraint firstItem="dsU-Yf-KDK" firstAttribute="top" secondItem="ylt-FK-Myf" secondAttribute="bottom" id="R6q-bz-94d"/>
+                <constraint firstItem="dsU-Yf-KDK" firstAttribute="leading" secondItem="i5M-Pr-FkT" secondAttribute="leading" id="gYR-cf-MK4"/>
+                <constraint firstItem="ylt-FK-Myf" firstAttribute="leading" secondItem="i5M-Pr-FkT" secondAttribute="leading" id="j7G-hU-bIV"/>
+                <constraint firstAttribute="bottom" secondItem="dsU-Yf-KDK" secondAttribute="bottom" id="kIs-cy-kew"/>
+                <constraint firstAttribute="trailing" secondItem="ylt-FK-Myf" secondAttribute="trailing" id="mV7-kK-tFp"/>
+            </constraints>
+        </view>
+    </objects>
+</document>

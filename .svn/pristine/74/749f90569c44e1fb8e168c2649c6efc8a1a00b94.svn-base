@@ -1,0 +1,153 @@
+//
+//  GroupBriefEditViewController.m
+//  Burning
+//
+//  Created by Xiang Li on 15/7/1.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "GroupBriefEditViewController.h"
+
+@interface GroupBriefEditViewController ()
+
+@property (strong, nonatomic) UILabel *hintLabel;
+
+@end
+
+@implementation GroupBriefEditViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    self.navigationController.navigationBarHidden =NO;
+    [super viewDidLoad];
+    UIBarButtonItem *addItem = [[UIBarButtonItem alloc] initWithTitle:@"保存" style:UIBarButtonItemStyleBordered target:self action:@selector(rightBarButton4BriefEidtClicked)];
+    self.navigationItem.rightBarButtonItems = @[addItem];
+    self.automaticallyAdjustsScrollViewInsets = NO;
+    
+    NSDictionary *dict = self.conversion.attributes;
+    switch (self.editType) {
+        case 0:
+            self.title = @"群简介";
+            self.briefTextView.text = [dict objectForKey:@"groupBrief"];
+            
+            break;
+        case 1:
+            self.title = @"签名";
+            self.briefTextView.text = [[AVUser currentUser] objectForKey:@"signature"];
+            break;
+        case 2:
+            self.title = @"Feedback";
+            [self setHint];
+        default:
+            break;
+    }
+    
+    [self briefTextView];
+}
+
+-(void)setHint{
+    self.briefTextView.delegate = self;
+    
+    _hintLabel = [[UILabel alloc]initWithFrame:CGRectMake(5,5,200,18)];
+    _hintLabel.font = [UIFont systemFontOfSize:14.0f];
+    _hintLabel.text = @"您的意见 [非常] 重要。";
+    _hintLabel.enabled = YES;
+    _hintLabel.textColor =[UIColor lightGrayColor];
+    //_hintLabel.backgroundColor = [UIColor blueColor];
+    [self.briefTextView addSubview:_hintLabel];
+}
+
+
+#pragma UITextView Delegate
+-(void)textViewDidChange:(UITextView*) textView {
+    if (textView.text.length ==0) {
+        _hintLabel.text = @"您的意见 [非常] 重要。";
+    }else {
+        _hintLabel.text = @"";
+    }
+}
+
+
+-(void)rightBarButton4BriefEidtClicked {
+    if (self.briefTextView.text.length != 0) {
+        AVIMConversationUpdateBuilder *builder = [self.conversion newUpdateBuilder];
+        WEAKSELF
+        [weakSelf showProgress];
+        switch (self.editType) {
+            case 0: {
+                [self.conversion.attributes setValue:self.briefTextView.text forKey:@"groupBrief"];
+                builder.attributes = [[NSDictionary alloc]initWithDictionary:self.conversion.attributes];
+                NSDictionary *changedDict = [builder dictionary];
+                [self.conversion update:changedDict callback:^(BOOL succeeded, NSError *error) {
+                    [weakSelf hideProgress];
+                    if (error) {
+                        [weakSelf alert:@"更新群简介失败"];
+                    } else {
+                        [weakSelf.navigationController popViewControllerAnimated:YES];
+                    }
+                }];
+            }
+            break;
+                
+            case 1: {
+                AVUser *avUser = [AVUser currentUser];
+                [avUser setObject:self.briefTextView.text forKey:@"signature"];
+                [avUser saveInBackgroundWithBlock:^(BOOL succeeded, NSError *error) {
+                   [weakSelf hideProgress];
+                    if (error) {
+                        
+                    }else {
+                        [weakSelf.navigationController popViewControllerAnimated:YES];
+                    }
+                }];
+            }
+            break;
+                
+            case 2: {
+                AVUser *avUser = [AVUser currentUser];
+                LCFeedback *lcFB = [[LCFeedback alloc] init];
+                [lcFB setObject:avUser.objectId forKey:@"userObjectId"];
+                [lcFB setObject:avUser.username forKey:@"username"];
+                [lcFB setObject:avUser.mobilePhoneNumber forKey:@"mobilePhoneNum"];
+                [lcFB setObject:self.briefTextView.text forKey:@"content"];
+                
+                WEAKSELF
+                [weakSelf runInGlobalQueue:^{
+                    NSError *error2;
+                    [weakSelf.lcDataHelper saveFeedbackWithLCFeedback:lcFB  error:&error2];
+                    [weakSelf runInMainQueue:^{
+                        [weakSelf hideProgress];
+                        if (error2) {
+                            [weakSelf alert:error2];
+                        }else {
+                            [weakSelf showInfo:@"感谢 ♡"];
+                            [weakSelf.navigationController popViewControllerAnimated:YES];
+                        }
+                    }];
+                }];
+            }
+            break;
+            default:
+                break;
+        }
+    } else {
+        [self alert:@"内容不能为空"];
+    }
+}
+
+
+-(UITextView*)briefTextView {
+    _briefTextView.layer.borderColor = [[UIColor colorWithRed:215.0 / 255.0 green:215.0 / 255.0 blue:215.0 / 255.0 alpha:1] CGColor];
+    _briefTextView.layer.borderWidth = 0.6f;
+   _briefTextView.layer.cornerRadius = 6.0f;
+    
+    return _briefTextView;
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+
+}
+
+@end

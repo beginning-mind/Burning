@@ -1,0 +1,91 @@
+//
+//  StartPageViewController.m
+//  Burning
+//
+//  Created by Xiang Li on 15/7/31.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "StartPageViewController.h"
+#import <UIKit/UIKit.h>
+#import "LoginViewController.h"
+#import "RegisterViewController.h"
+
+@interface StartPageViewController ()
+@property (nonatomic,strong) NSMutableArray * animateArray;
+
+@end
+
+@implementation StartPageViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    [self loadAnimatePic];
+    self.backgroundView.animationImages = _animateArray;
+    self.backgroundView.animationRepeatCount = 0;
+    self.backgroundView.animationDuration = 15.0;
+    
+    [self.backgroundView startAnimating];
+    
+    //[self initSequence]; //产生记录后一定要注释掉！！！
+    
+    //    NSLog(@"self.fram:%@",NSStringFromCGRect(self.view.frame));
+}
+
+-(void) loadAnimatePic {
+    _animateArray = [[NSMutableArray alloc]init];
+    for (int i=0; i<234; i++) {
+        NSString *strIdx = [NSString stringWithFormat:@"%d", i];
+        NSString *animatePic = @"帧-000";
+        if (i<10) {
+            animatePic = [animatePic stringByAppendingString:@"00"];
+            animatePic = [animatePic stringByAppendingString:strIdx];
+            animatePic = [animatePic stringByAppendingString:@".jpg"];
+        }else if(i<100) {
+            animatePic = [animatePic stringByAppendingString:@"0"];
+            animatePic = [animatePic stringByAppendingString:strIdx];
+            animatePic = [animatePic stringByAppendingString:@".jpg"];
+        }else {
+            animatePic = [animatePic stringByAppendingString:strIdx];
+            animatePic = [animatePic stringByAppendingString:@".jpg"];
+        }
+
+        [_animateArray addObject:[UIImage imageNamed:animatePic]];
+    }
+}
+
+-(void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:YES];
+    
+    [self fillStartPageFullScreen];
+}
+
+-(void)fillStartPageFullScreen {
+    [[UIApplication sharedApplication]setStatusBarHidden:YES withAnimation:UIStatusBarAnimationNone];
+    self.navigationController.navigationBar.translucent =YES;
+    self.wantsFullScreenLayout = YES;
+    [self.navigationController setNavigationBarHidden:YES animated:NO];
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+- (IBAction)intoLoginAction:(id)sender {
+    LoginViewController *loginViewController = [[LoginViewController alloc] init];
+    [self.navigationController pushViewController:loginViewController animated:YES];
+}
+
+- (IBAction)intoRegisterAction:(id)sender {
+    RegisterViewController *registerViewController = [[RegisterViewController alloc]init];
+    registerViewController.sourcePageFlag = @"1";
+    [self.navigationController pushViewController:registerViewController animated:YES];
+}
+
+//-(void) initSequenceWithType:(NSNumber *) type {
+//    [self.lcDataHelper initSequenceWithType:type];
+//}
+
+@end

@@ -1,0 +1,23 @@
+//
+//  GroupTableViewCell.h
+//  Burning
+//
+//  Created by Xiang Li on 15/7/17.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "SHGroup.h"
+
+@interface GroupTableViewCell : UITableViewCell
+@property (weak, nonatomic) IBOutlet UIImageView *groupAvatar;
+@property (weak, nonatomic) IBOutlet UILabel *groupName;
+@property (weak, nonatomic) IBOutlet UILabel *groupSlogan;
+@property (weak, nonatomic) IBOutlet UILabel *groupDistance;
+@property (weak, nonatomic) IBOutlet UILabel *groupMemberCount;
+//@property (nonatomic, strong) CLLocation *currentLocation;
+
+
+@property(nonatomic,strong) SHGroup *showGroup;
+
+@end

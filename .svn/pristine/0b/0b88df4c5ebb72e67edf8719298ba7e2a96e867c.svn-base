@@ -1,0 +1,172 @@
+//
+//  PubShowTableView.m
+//  Burning
+//
+//  Created by wei_zhu on 15/6/12.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "PubShowTableView.h"
+#import "LCDataHelper.h"
+#import "LCComment.h"
+#import "PubShowTableViewCell.h"
+#import "BaseViewController.h"
+
+
+@interface PubShowTableView()<PubShowTableViewCellDelegate>
+
+@property(nonatomic,strong)LCDataHelper *lcDataHelper;
+
+@end
+
+
+@implementation PubShowTableView
+
+-(instancetype)initWithFrame:(CGRect)frame{
+
+    self = [super initWithFrame:frame];
+    self.delegate = self;
+    self.dataSource = self;
+    
+    //设置线条顶格画
+    if ([self respondsToSelector:@selector(setSeparatorInset:)]) {
+        [self setSeparatorInset:UIEdgeInsetsZero];
+    }
+    if ([self respondsToSelector:@selector(setLayoutMargins:)]) {
+        [self setLayoutMargins:UIEdgeInsetsZero];
+    }
+    
+    //设置不显示多余的白线
+    UIView *view = [UIView new];
+    view.backgroundColor = [UIColor clearColor];
+    [self setTableFooterView:view];
+    
+    return  self;
+}
+
+- (UIViewController*)getSuperViewController{
+    for (UIView* next = [self superview]; next; next = next.superview) {
+        UIResponder* nextResponder = [next nextResponder];
+        if ([nextResponder isKindOfClass:[UIViewController class]]) {
+            return (UIViewController*)nextResponder;
+        }
+    }
+    return nil;
+}
+
+
+-(void)addLike{
+        LCPublish* lcPublish=_lcPublishs[self.selectedIndexPath.row];
+        [self.lcDataHelper digOrCancelDigOfPublish:lcPublish block:^(BOOL succeeded, NSError *error) {
+            if(!error){
+                [self reloadLCPublish:lcPublish AtIndexPath:self.selectedIndexPath];
+
+                //推送通知
+                AVUser *curUser = [AVUser currentUser];
+                if([lcPublish.digUsers containsObject:curUser]){
+                    AVUser *user = lcPublish.creator;
+                    if ([user.objectId isEqualToString:curUser.objectId]) {
+                        return;
+                    }
+                    NSString *objId = lcPublish.objectId;
+                    NSString *token = [user objectForKey:@"deviceToken"];
+                    if (token !=nil) {
+                        NSDictionary *data = [NSDictionary dictionaryWithObjectsAndKeys:
+                                              [NSNumber numberWithInt:1],@"content-available",
+                                              @"1",@"type",
+                                              objId,@"objId",
+                                              curUser.objectId,@"userId",
+                                              //                                  @"Increment", @"badge",
+//                                              @"cheering.caf", @"sound",
+                                              nil];
+                        BaseViewController *baseVC = (BaseViewController*)[self getSuperViewController];
+                        [baseVC PushNewsWithData:data deviceToke:token Chanell:@"SysNoti"];
+                    }
+                }
+            }
+        }];
+}
+
+-(void)reloadLCPublish:(LCPublish*)lcPublish AtIndexPath:(NSIndexPath*)indexPath{
+
+        [self.lcPublishs replaceObjectAtIndex:indexPath.row withObject:lcPublish];
+        [self reloadRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationNone];
+}
+
+#pragma mark --TableViewDataSource Delegate
+
+-(NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section{
+    return self.lcPublishs.count;
+}
+
+-(NSInteger)numberOfSectionsInTableView:(UITableView *)tableView{
+    return 1;
+}
+
+-(UITableViewCell*)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath{
+    static NSString* cellIdentifer = @"PubShowTableViewCellIdentifier";
+    PubShowTableViewCell *cell= [tableView dequeueReusableCellWithIdentifier:cellIdentifer];
+    if(cell==nil){
+        cell=[[PubShowTableViewCell alloc] initWithStyle:UITableViewCellStyleDefault reuseIdentifier:cellIdentifer];
+    }
+    cell.publishTableViewCellDelegate=self;
+    cell.indexPath=indexPath;
+    cell.currentPublish=self.lcPublishs[indexPath.row];
+
+    return cell;
+}
+
+-(CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath{
+    return [PubShowTableViewCell calculateCellHeightWithSHPublish:self.lcPublishs[indexPath.row]];
+
+}
+
+- (void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    if ([cell respondsToSelector:@selector(setSeparatorInset:)]) {
+        [cell setSeparatorInset:UIEdgeInsetsZero];
+    }
+    if ([cell respondsToSelector:@selector(setLayoutMargins:)]) {
+        [cell setLayoutMargins:UIEdgeInsetsZero];
+    }
+}
+
+#pragma mark -PubShowTableViewCell delegat
+
+-(void)didLikeButtonClick:(UIButton *)button indexPath:(NSIndexPath *)indexPath{
+    if ([_pubShowTableViewDelegate respondsToSelector:@selector(didLikeButtonClick:indexPath:)]) {
+        [_pubShowTableViewDelegate didLikeButtonClick:button indexPath:indexPath];
+    }
+}
+
+-(void)didCommentButtonClick:(NSIndexPath *)indexPath commentUserIndex:(NSInteger)commentUserIndex{
+    if ([_pubShowTableViewDelegate respondsToSelector:@selector(didCommentButtonClick:commentUserIndex:)]) {
+        [_pubShowTableViewDelegate didCommentButtonClick:indexPath commentUserIndex:commentUserIndex];
+    }
+}
+
+
+-(void)didAvatarImageViewClick:(UIGestureRecognizer *)gestureRecognizer indexPath:(NSIndexPath *)indexPath{
+    if ([_pubShowTableViewDelegate respondsToSelector:@selector(didAvatarImageViewClickUser:)]) {
+        LCPublish *publish = self.lcPublishs[indexPath.row];
+        [_pubShowTableViewDelegate didAvatarImageViewClickUser:publish.creator];
+    }
+}
+
+-(void)didDigUserImageViewClick:(NSIndexPath *)indexPath digUserIndex:(NSInteger)digUserIndex{
+
+    if ([_pubShowTableViewDelegate respondsToSelector:@selector(didDigUserImageViewClickUser:)]) {
+        LCPublish *lcPublish = self.lcPublishs[indexPath.row];
+        [_pubShowTableViewDelegate didDigUserImageViewClickUser:lcPublish.digUsers[digUserIndex]];
+    }
+}
+
+#pragma mark Propertys
+-(LCDataHelper*)lcDataHelper{
+    if (_lcDataHelper==nil) {
+        _lcDataHelper = [[LCDataHelper alloc]init];
+    }
+    return _lcDataHelper;
+}
+
+@end

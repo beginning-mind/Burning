@@ -1,0 +1,69 @@
+//
+//  RadioListViewController.m
+//  Burning
+//
+//  Created by Xiang Li on 15/7/27.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "RadioListViewController.h"
+
+@interface RadioListViewController ()
+
+@end
+
+@implementation RadioListViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    [self setTitle:@"性别"];
+    
+    if (self.gender == nil || [self.gender isEqualToString:@""]) {
+        [self.maleLabel setHidden:YES];
+        [self.famleLabel setHidden:YES];
+    }else if([self.gender isEqualToString:@"1"]){
+        [self.maleLabel setHidden:NO];
+        [self.famleLabel setHidden:YES];
+    }else {
+        [self.maleLabel setHidden:YES];
+        [self.famleLabel setHidden:NO];
+    }
+}
+
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+
+}
+
+- (IBAction)maleButtonClick:(id)sender {
+    [self.maleLabel setHidden:NO];
+    [self.famleLabel setHidden:YES];
+    
+    
+    AVUser *avUser = [AVUser currentUser];
+    [avUser setObject:@"1" forKey:@"gender"];
+    [avUser saveInBackgroundWithBlock:^(BOOL succeeded, NSError *error) {
+        if (error) {
+            
+        } else {
+            [self.navigationController popViewControllerAnimated:YES];
+        }
+    }];
+}
+
+- (IBAction)famaleButtonClick:(id)sender {
+    [self.maleLabel setHidden:YES];
+    [self.famleLabel setHidden:NO];
+    
+    AVUser *avUser = [AVUser currentUser];
+    [avUser setObject:@"0" forKey:@"gender"];
+    [avUser saveInBackgroundWithBlock:^(BOOL succeeded, NSError *error) {
+        if (error) {
+            
+        } else {
+            [self.navigationController popViewControllerAnimated:YES];
+        }
+    }];
+}
+@end

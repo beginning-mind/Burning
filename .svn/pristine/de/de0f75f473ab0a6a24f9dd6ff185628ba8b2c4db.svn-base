@@ -1,0 +1,211 @@
+//
+//  TakePhotoViewController.m
+//  Burning
+//
+//  Created by wei_zhu on 15/6/3.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "TakePhotoViewController.h"
+#import "BurningNavControl.h"
+#import "BuringTabBarController.h"
+#import "PubShowPhotoCollectionViewCell.h"
+#import "MLSelectPhotoPickerViewController.h"
+#import "MLSelectPhotoAssets.h"
+#import <STAlertView/STAlertView.h>
+
+@interface TakePhotoViewController ()<UICollectionViewDataSource,UICollectionViewDelegate,UICollectionViewDelegateFlowLayout,UIImagePickerControllerDelegate>
+
+//@property (strong,nonatomic) XHPhotographyHelper* photographyHelper;
+
+@property(strong,nonatomic)STAlertView *alertView;
+
+@end
+
+static NSString* photoCellIndentifier=@"takePhotocell";
+
+@implementation TakePhotoViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    // Do any additional setup after loading the view from its nib.
+    self.showTabbar = NO;
+    [self setNavgationBar];
+
+    UICollectionViewFlowLayout *layout = [[UICollectionViewFlowLayout alloc]init];
+    layout.minimumInteritemSpacing =3.0f;
+    layout.minimumLineSpacing = 3.0f;
+    layout.sectionInset =UIEdgeInsetsMake(0, 0, 0, 0);
+    self.collectionViewPhotos.collectionViewLayout = layout;
+    [self.collectionViewPhotos registerClass:[PubShowPhotoCollectionViewCell class] forCellWithReuseIdentifier:photoCellIndentifier];
+    self.collectionViewPhotos.dataSource = self;
+    self.collectionViewPhotos.delegate = self;
+
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+-(void)setNavgationBar{
+    [self.navigationItem setTitle:@"发布"];
+    
+    UIBarButtonItem *rightBarItem = [[UIBarButtonItem alloc]initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(publishClick:)];
+    self.navigationItem.rightBarButtonItem = rightBarItem;
+}
+
+//-(void)addImage:(UIImage*)image{
+//    [self.selectPhotos addObject:image];
+//    [self.collectionViewPhotos reloadData];
+//}
+
+//-(void)dismiss{
+//    [self dismissViewControllerAnimated:YES completion:nil];
+//}
+
+-(void)callCameraAndPhoto{
+
+    UIAlertView *uiAlertView= [[UIAlertView alloc]initWithTitle:nil message:nil delegate:self cancelButtonTitle:@"退出" otherButtonTitles:@"手机相册",@"相机拍摄", nil];
+    [uiAlertView show];
+}
+
+#pragma  mark alterViewDelegate
+-(void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex{
+    if (buttonIndex ==1) {
+        //手机相册
+        MLSelectPhotoPickerViewController *pickerVc = [[MLSelectPhotoPickerViewController alloc] init];
+        // 默认显示相册里面的内容SavePhotos
+        pickerVc.status = PickerViewShowStatusCameraRoll;
+        pickerVc.minCount = 1;
+        [pickerVc show];
+        __weak typeof(self) weakSelf = self;
+        pickerVc.callBack = ^(NSArray *assets){
+            //添加返回图片代码
+            for(MLSelectPhotoAssets *asset in assets){
+//                UIImage *image = [MLSelectPhotoPickerViewController getImageWithImageObj:asset];
+                [self.selectPhotos addObject:asset.originImage];
+            }
+            [self.collectionViewPhotos reloadData];
+        };
+    }
+    else if(buttonIndex ==2){
+        //相机拍摄
+        UIImagePickerControllerSourceType sourceType = UIImagePickerControllerSourceTypeCamera;
+
+        UIImagePickerController *picker = [[UIImagePickerController alloc] init];//初始化
+        picker.delegate = self;
+        picker.allowsEditing = YES;//设置可编辑
+        picker.sourceType = sourceType;
+        [self presentViewController:picker animated:YES completion:nil];//进入照相界面
+    }
+}
+
+#pragma mark UIIMagePickerControlDelegate
+- (void)imagePickerController:(UIImagePickerController *)picker didFinishPickingMediaWithInfo:(NSDictionary *)info{
+    //得到图片
+    UIImage * image = [info objectForKey:UIImagePickerControllerOriginalImage];
+    //图片存入相册
+    //UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil);
+    [self.selectPhotos addObject:image];
+    [self.collectionViewPhotos reloadData];
+    [self dismissViewControllerAnimated:YES completion:nil];
+}
+
+#pragma mark -action
+-(void)publishClick:(UIButton*)button{
+    if(self.textComment.text.length!=0 || self.selectPhotos.count!=0){
+        WEAKSELF
+        [weakSelf showProgress];
+        [weakSelf runInGlobalQueue:^{
+            NSError* error;
+            
+            [weakSelf.lcDataHelper publishWithContent:self.textComment.text images:self.selectPhotos error:&error];
+            [weakSelf runInMainQueue:^{
+                [weakSelf hideProgress];
+                if(error==nil){
+                    
+                    if ([_takePhotoViewControllerDelegate respondsToSelector:@selector(refresh)]) {
+                        [_takePhotoViewControllerDelegate refresh];
+                    }
+                    
+                    [weakSelf.navigationController popViewControllerAnimated:YES];
+                }else{
+                    [weakSelf alertError:error];
+                }
+            }];
+        }];
+    }else{
+        [self alert:@"请完善内容"];
+    }
+}
+
+-(void)back:(UIButton*)button{
+  self.alertView = [[STAlertView alloc]initWithTitle:nil message:@"确定退出本次编辑吗?" cancelButtonTitle:@"取消" otherButtonTitle:@"确定" cancelButtonBlock:^{
+  } otherButtonBlock:^{
+      [self.navigationController popViewControllerAnimated:YES];
+  }];
+    [self.alertView show];
+}
+
+#pragma mark -Propertys
+
+-(NSMutableArray*)selectPhotos{
+    if(_selectPhotos==nil){
+        _selectPhotos=[NSMutableArray array];
+    }
+    return _selectPhotos;
+}
+
+//-(XHPhotographyHelper*)photographyHelper{
+//    if(_photographyHelper==nil){
+//        _photographyHelper=[[XHPhotographyHelper alloc] init];
+//    }
+//    return _photographyHelper;
+//}
+
+#pragma mark -UICollectionView dataSource Delegat
+-(NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section{
+    if(self.selectPhotos.count==9){
+        return self.selectPhotos.count;
+    }else{
+        return self.selectPhotos.count+1;
+    }
+}
+
+-(UICollectionViewCell*)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath{
+    PubShowPhotoCollectionViewCell* cell=(PubShowPhotoCollectionViewCell*)[collectionView dequeueReusableCellWithReuseIdentifier:photoCellIndentifier forIndexPath:indexPath];
+    if(indexPath.row==self.selectPhotos.count){
+        cell.photoImageView.image=[UIImage imageNamed:@"PublisAddBtn"];
+        cell.photoImageView.highlightedImage=[UIImage imageNamed:@"PublisAddBtnHL"];
+        return cell;
+    }else{
+        cell.photoImageView.image=self.selectPhotos[indexPath.row];
+        cell.photoImageView.highlightedImage=nil;
+        return cell;
+    }
+}
+
+-(BOOL)collectionView:(UICollectionView *)collectionView shouldSelectItemAtIndexPath:(NSIndexPath *)indexPath{
+    return  YES;
+}
+
+-(void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath{
+    if(indexPath.row==_selectPhotos.count){
+        [_textComment resignFirstResponder];
+        [self callCameraAndPhoto];
+    }
+}
+
+#pragma mark UICollectionView FLowLayout Delegate
+
+-(CGSize)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout sizeForItemAtIndexPath:(NSIndexPath *)indexPath{
+    CGSize finalSize = CGSizeMake(([SVGloble shareInstance].globleWidth-39.0)/4.0, 80);
+    return finalSize;
+}
+
+-(void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event{
+    [_textComment resignFirstResponder];
+}
+
+@end

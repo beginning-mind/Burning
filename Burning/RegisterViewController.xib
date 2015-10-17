@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="8191" systemVersion="15A284" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES">
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="8154"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="RegisterViewController">
+            <connections>
+                <outlet property="phoneNumber" destination="vuS-lE-w36" id="3bM-L8-4L7"/>
+                <outlet property="view" destination="i5M-Pr-FkT" id="sfx-zR-JGt"/>
+            </connections>
+        </placeholder>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <view clearsContextBeforeDrawing="NO" contentMode="scaleToFill" id="i5M-Pr-FkT">
+            <rect key="frame" x="0.0" y="0.0" width="600" height="600"/>
+            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+            <subviews>
+                <textField opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" misplaced="YES" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="输入手机号" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="vuS-lE-w36">
+                    <rect key="frame" x="20" y="19" width="560" height="41"/>
+                    <animations/>
+                    <constraints>
+                        <constraint firstAttribute="height" constant="41" id="DsX-KJ-4dP"/>
+                    </constraints>
+                    <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                    <textInputTraits key="textInputTraits" keyboardType="numberPad"/>
+                </textField>
+                <button opaque="NO" contentMode="scaleToFill" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Wfk-UI-3P4">
+                    <rect key="frame" x="15" y="79" width="570" height="32"/>
+                    <animations/>
+                    <constraints>
+                        <constraint firstAttribute="height" constant="32" id="ReR-Yd-gCA"/>
+                    </constraints>
+                    <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                    <state key="normal" title="获取验证码" backgroundImage="co_bottomBtn_bg.png">
+                        <color key="titleColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                        <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
+                    </state>
+                    <connections>
+                        <action selector="validateUserBySMS:" destination="-1" eventType="touchUpInside" id="xq6-5H-6ye"/>
+                    </connections>
+                </button>
+            </subviews>
+            <animations/>
+            <constraints>
+                <constraint firstItem="vuS-lE-w36" firstAttribute="leading" secondItem="i5M-Pr-FkT" secondAttribute="leading" constant="15" id="1Cv-K2-wOA"/>
+                <constraint firstAttribute="trailing" secondItem="vuS-lE-w36" secondAttribute="trailing" constant="15" id="BaC-Za-LAb"/>
+                <constraint firstItem="Wfk-UI-3P4" firstAttribute="leading" secondItem="i5M-Pr-FkT" secondAttribute="leading" constant="15" id="E5k-pz-Bwg"/>
+                <constraint firstAttribute="centerX" secondItem="Wfk-UI-3P4" secondAttribute="centerX" id="IoN-Yb-Fgt"/>
+                <constraint firstItem="Wfk-UI-3P4" firstAttribute="top" secondItem="vuS-lE-w36" secondAttribute="bottom" constant="20" id="lub-Dg-XrG"/>
+                <constraint firstItem="Wfk-UI-3P4" firstAttribute="centerX" secondItem="vuS-lE-w36" secondAttribute="centerX" id="mdk-Nm-7c0"/>
+                <constraint firstAttribute="trailing" secondItem="Wfk-UI-3P4" secondAttribute="trailing" constant="15" id="suX-fC-AIc"/>
+                <constraint firstItem="vuS-lE-w36" firstAttribute="top" secondItem="i5M-Pr-FkT" secondAttribute="top" constant="20" id="zXp-5m-1x0"/>
+            </constraints>
+        </view>
+    </objects>
+    <resources>
+        <image name="co_bottomBtn_bg.png" width="285" height="32"/>
+    </resources>
+</document>

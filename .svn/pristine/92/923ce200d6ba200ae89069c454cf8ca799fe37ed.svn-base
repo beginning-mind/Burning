@@ -1,0 +1,376 @@
+//
+//  SVRootScrollView.m
+//  SlideView
+//
+//  Created by Chen Yaoqiang on 13-12-27.
+//  Copyright (c) 2013年 Chen Yaoqiang. All rights reserved.
+//
+
+#import "SVRootScrollView.h"
+#import "SVTopScrollView.h"
+#import "PersonalInfoViewController.h"
+#import "CommentViewController.h"
+#import <MJRefresh.h>
+#import <SDWebImage/UIImageView+WebCache.h>
+
+
+
+#define POSITIONID (int)(scrollView.contentOffset.x/[SVGloble shareInstance].globleWidth)
+
+#define BASETAG 200
+
+#define LOADCOUNT 4
+
+int _currentPage;
+int _curAttentionLoadMoreCount;
+int _curNewlyLoadMoreCount;
+int _curHotPhotoLoadMoreCount;
+static NSString *collectionCellIdentifer = @"collectioncell1";
+static NSString *collectionCellIdentifer2 = @"collectioncell2";
+
+@interface SVRootScrollView()
+
+@property(nonatomic,strong) LCDataHelper* lcDataHelper;
+
+@property(nonatomic,assign)BOOL isFirstTopDrag;
+@property(nonatomic,assign)BOOL isFirstBottomDrag;
+
+@end
+
+
+@implementation SVRootScrollView
+
+@synthesize viewNameArray;
+
++ (SVRootScrollView *)shareInstance {
+    static SVRootScrollView *_instance;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        _instance=[[self alloc] initWithFrame:CGRectMake(0, 44, [SVGloble shareInstance].globleWidth, [SVGloble shareInstance].globleAllHeight-kStatusBarHeight-kNavigationBarHeight-44-kTabBarHeight)];
+        
+    });
+    return _instance;
+}
+
+- (id)initWithFrame:(CGRect)frame{
+    self = [super initWithFrame:frame];
+    if (self) {
+        self.delegate = self;
+        self.backgroundColor = [UIColor whiteColor];
+        self.pagingEnabled = YES;
+        self.userInteractionEnabled = YES;
+        self.bounces = NO;
+        
+        self.showsHorizontalScrollIndicator = NO;
+        self.showsVerticalScrollIndicator = NO;
+        
+        self.isFirstTopDrag = YES;
+        self.isFirstBottomDrag = YES;
+        
+        userContentOffsetX = 0;
+        
+    }
+    return self;
+}
+
+- (UIViewController*)getSuperViewController{
+    for (UIView* next = [self superview]; next; next = next.superview) {
+        UIResponder* nextResponder = [next nextResponder];
+        if ([nextResponder isKindOfClass:[UIViewController class]]) {
+            return (UIViewController*)nextResponder;
+        }
+    }
+    return nil;
+}
+
+- (void)initWithViews{
+    for (int i = 0; i < [viewNameArray count]; i++) {
+        if (i==0) {
+            UICollectionViewFlowLayout *layout = [[UICollectionViewFlowLayout alloc]init];
+            layout.minimumInteritemSpacing =1.0f;
+            layout.minimumLineSpacing = 1.0f;
+            layout.sectionInset =UIEdgeInsetsMake(kHotPhotoSpacing, 0, 0, 0);
+            
+            self.hotCollectionView =[[PhotosUICollectionView alloc]initWithFrame:CGRectMake(0+[SVGloble shareInstance].globleWidth*i, 0, [SVGloble shareInstance].globleWidth, self.frame.size.height) collectionViewLayout:layout];
+            [self addSubview:self.hotCollectionView];
+            
+            //headRefresh
+            [self.hotCollectionView addLegendHeaderWithRefreshingTarget:self refreshingAction:@selector(loadHotData)];
+            //__weak typeof(self) weakSelf = self;
+            [self.hotCollectionView.header setUpdatedTimeHidden:YES];
+            [self.hotCollectionView.header setTitle:@"加载中..." forState:MJRefreshHeaderStateRefreshing];
+            [self.hotCollectionView.header setTitle:@"下拉刷新" forState:MJRefreshHeaderStateIdle];
+            [self.hotCollectionView.header setTitle:@"松开刷新数据" forState:MJRefreshHeaderStatePulling];
+            self.hotCollectionView.header.font = [UIFont systemFontOfSize:kCommonFontSize];
+            self.hotCollectionView.header.textColor = RGB(133, 133, 133);
+            [self.hotCollectionView.header beginRefreshing];
+            
+            //footRefresh
+            [self.hotCollectionView addLegendFooterWithRefreshingTarget:self refreshingAction:@selector(loadMoreHotData)];
+            [self.hotCollectionView.footer setTitle:@"加载中..." forState:MJRefreshFooterStateRefreshing];
+            [self.hotCollectionView.footer setTitle:@"" forState:MJRefreshFooterStateIdle];
+            [self.hotCollectionView.footer setTitle:@"" forState:MJRefreshFooterStateNoMoreData];
+            self.hotCollectionView.footer.font= [UIFont systemFontOfSize:kCommonFontSize];
+            self.hotCollectionView.footer.textColor = RGB(133, 133, 133);
+
+        }
+        else if(i==1){
+            self.attetionTableView = [[PubShowTableView alloc]initWithFrame:CGRectMake(0+[SVGloble shareInstance].globleWidth*i, 0, [SVGloble shareInstance].globleWidth, self.frame.size.height)];
+            self.attetionTableView.pubShowTableViewDelegate = self;
+            //self.attetionTableView.backgroundColor = [UIColor colorWithRed:0.95 green:0.95 blue:0.96 alpha:1.0];
+            [self addSubview:self.attetionTableView];
+            
+            //headRefresh
+            [self.attetionTableView addLegendHeaderWithRefreshingTarget:self refreshingAction:@selector(loadAttentionData)];
+            //__weak typeof(self) weakSelf = self;
+            [self.attetionTableView.header setTitle:@"加载中..." forState:MJRefreshHeaderStateRefreshing];
+            [self.attetionTableView.header setTitle:@"下拉刷新" forState:MJRefreshHeaderStateIdle];
+            [self.attetionTableView.header setTitle:@"松开刷新数据" forState:MJRefreshHeaderStatePulling];
+            self.attetionTableView.header.font = [UIFont systemFontOfSize:kCommonFontSize];
+            self.attetionTableView.header.textColor = RGB(133, 133, 133);
+            [self.attetionTableView.header setUpdatedTimeHidden:YES];
+            [self.attetionTableView.header beginRefreshing];
+            
+            //footRefresh
+            [self.attetionTableView addLegendFooterWithRefreshingTarget:self refreshingAction:@selector(loadMoreAttetionData)];
+            [self.attetionTableView.footer setTitle:@"" forState:MJRefreshFooterStateIdle];
+            [self.attetionTableView.footer setTitle:@"加载中..." forState:MJRefreshFooterStateRefreshing];
+            [self.attetionTableView.footer setTitle:@"" forState:MJRefreshFooterStateNoMoreData];
+            self.attetionTableView.footer.font= [UIFont systemFontOfSize:kCommonFontSize];
+            self.attetionTableView.footer.textColor = RGB(133, 133, 133);
+        }
+        else if(i==2){
+            self.newlyTableView = [[PubShowTableView alloc]initWithFrame:CGRectMake(0+[SVGloble shareInstance].globleWidth*i, 0, [SVGloble shareInstance].globleWidth, self.frame.size.height)];
+            self.newlyTableView.pubShowTableViewDelegate = self;
+            [self addSubview:self.newlyTableView];
+            
+            //headRefresh
+            [self.newlyTableView addLegendHeaderWithRefreshingTarget:self refreshingAction:@selector(loadNewlyData)];
+            [self.newlyTableView.header setTitle:@"加载中..." forState:MJRefreshHeaderStateRefreshing];
+            [self.newlyTableView.header setTitle:@"下拉刷新" forState:MJRefreshHeaderStateIdle];
+            [self.newlyTableView.header setTitle:@"松开刷新数据" forState:MJRefreshHeaderStatePulling];
+            self.newlyTableView.header.font = [UIFont systemFontOfSize:kCommonFontSize];
+            self.newlyTableView.header.textColor = RGB(133, 133, 133);
+            self.newlyTableView.header.updatedTimeHidden =YES;
+            [self.newlyTableView.header beginRefreshing];
+            
+            //footRefresh
+            [self.newlyTableView addLegendFooterWithRefreshingTarget:self refreshingAction:@selector(loadMoreNewlyData)];
+            [self.newlyTableView.footer setTitle:@"加载中..." forState:MJRefreshFooterStateRefreshing];
+            [self.newlyTableView.footer setTitle:@"" forState:MJRefreshFooterStateIdle];
+            [self.newlyTableView.footer setTitle:@"" forState:MJRefreshFooterStateNoMoreData];
+            self.newlyTableView.footer.font = [UIFont systemFontOfSize:kCommonFontSize];
+            self.newlyTableView.footer.textColor = RGB(133, 133, 133);
+        }
+    }
+    self.contentSize = CGSizeMake([SVGloble shareInstance].globleWidth*[viewNameArray count], [SVGloble shareInstance].globleAllHeight-kHoriztalScorllBarHeight-kStatusBarHeight-kNavigationBarHeight-kHoriztalScorllBarHeight-kTabBarHeight);
+}
+
+-(void)loadData{
+    CGFloat pagewidth = self.frame.size.width;
+    _currentPage = floor((self.contentOffset.x - pagewidth/viewNameArray.count)/pagewidth)+1;
+    if (_currentPage ==1 && self.attetionTableView.lcPublishs.count>0 && self.attetionTableView.visibleCells.count==0) {
+        [self.attetionTableView reloadData];
+    }
+    if (_currentPage ==2 && self.newlyTableView.lcPublishs.count>0 && self.newlyTableView.visibleCells.count==0) {
+        [self.newlyTableView reloadData];
+    }
+}
+
+-(void)refresh{
+//    [self loadAttentionData];
+    [self loadNewlyData];
+}
+
+-(void)loadAttentionData{
+    [self.lcDataHelper getPublishAttentiondWithlimit:LOADCOUNT skip:0 block:^(NSArray *objects, NSError *error) {
+        if (error) {
+            return ;
+        }
+        self.attetionTableView.lcPublishs = [objects mutableCopy];
+        self.attetionTableView.curLoadMoreCount =1;
+        [self.attetionTableView reloadData];
+        [self.attetionTableView.header endRefreshing];
+        if (objects.count<LOADCOUNT) {
+            self.attetionTableView.footer.state = MJRefreshFooterStateNoMoreData;
+        }
+        else{
+            self.attetionTableView.footer.state = MJRefreshFooterStateIdle;
+        }
+    }];
+
+}
+
+-(void)loadMoreAttetionData{
+    [self.lcDataHelper getPublishAttentiondWithlimit:LOADCOUNT skip:LOADCOUNT*self.attetionTableView.curLoadMoreCount block:^(NSArray *objects, NSError *error) {
+        if (error) {
+            return ;
+        }
+        if (objects.count ==0) {
+            self.attetionTableView.footer.state = MJRefreshFooterStateNoMoreData;
+        }
+        else{
+            if(self.attetionTableView.lcPublishs ==nil){
+                self.attetionTableView.lcPublishs = [NSMutableArray array];
+            }
+            [self.attetionTableView.lcPublishs addObjectsFromArray:objects];
+            self.attetionTableView.curLoadMoreCount++;
+            [self.attetionTableView reloadData];
+            [self.attetionTableView.footer endRefreshing];
+
+        }
+    }];
+
+}
+
+-(void)loadNewlyData{
+    [self.lcDataHelper getPublishsWithlimit:LOADCOUNT skip:0 block:^(NSArray *objects, NSError *error) {
+        if (error) {
+            return ;
+        }
+        self.newlyTableView.lcPublishs = [objects mutableCopy];
+        self.newlyTableView.curLoadMoreCount =1;
+        [self.newlyTableView reloadData];
+        [self.newlyTableView.header endRefreshing];
+        if (objects.count<LOADCOUNT) {
+            self.newlyTableView.footer.state = MJRefreshFooterStateNoMoreData;
+        }
+        else{
+            self.newlyTableView.footer.state = MJRefreshFooterStateIdle;
+        }
+    }];
+}
+
+-(void)loadMoreNewlyData{
+    [self.lcDataHelper getPublishsWithlimit:LOADCOUNT skip:LOADCOUNT*self.newlyTableView.curLoadMoreCount block:^(NSArray *objects, NSError *error) {
+        if (error) {
+            return ;
+        }
+        if (objects.count==0) {
+            self.newlyTableView.footer.state = MJRefreshFooterStateNoMoreData;
+        }
+        else{
+            if(self.newlyTableView.lcPublishs ==nil){
+                self.newlyTableView.lcPublishs = [NSMutableArray array];
+            }
+            [self.newlyTableView.lcPublishs addObjectsFromArray:objects];
+            self.newlyTableView.curLoadMoreCount++;
+            [self.newlyTableView reloadData];
+            [self.newlyTableView.footer endRefreshing];
+        }
+        
+    }];
+}
+
+-(void)loadHotData{
+    [self.hotCollectionView loadData];
+}
+
+-(void)loadMoreHotData{
+    [self.hotCollectionView loadMoreData];
+}
+
+//滚动后修改顶部滚动条
+- (void)adjustTopScrollViewButton:(UIScrollView *)scrollView{
+    [[SVTopScrollView shareInstance] setButtonUnSelect];
+    if (!isVerticScroll) {
+        [SVTopScrollView shareInstance].scrollViewSelectedChannelID = POSITIONID+100;
+    }
+    [[SVTopScrollView shareInstance] setButtonSelect];
+}
+
+#pragma mark --ScrowView Delegat
+
+- (void)scrollViewWillBeginDragging:(UIScrollView *)scrollView{
+    userContentOffsetX = scrollView.contentOffset.x;
+}
+
+- (void)scrollViewDidScroll:(UIScrollView *)scrollView{
+    if (userContentOffsetX < scrollView.contentOffset.x) {
+        isLeftScroll = YES;
+        isVerticScroll = NO;
+    }
+    else if(userContentOffsetX>scrollView.contentOffset.x) {
+        isLeftScroll = NO;
+        isVerticScroll = NO;
+    }
+    else{
+        isVerticScroll = YES;
+    }
+}
+
+- (void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView{
+    //调整顶部滑条按钮状态
+    [self adjustTopScrollViewButton:scrollView];
+    
+    [self loadData];
+}
+
+- (void)scrollViewDidEndScrollingAnimation:(UIScrollView *)scrollView{
+    [self loadData];
+}
+
+#pragma mark pubShowTableViewDelegate
+
+-(void)didAvatarImageViewClickUser:(AVUser *)user{
+    BaseViewController *superViewController = (BaseViewController*)[self getSuperViewController];
+    PersonalInfoViewController *personalInfoVC = [[PersonalInfoViewController alloc]init];
+    personalInfoVC.user = user;
+    
+    [superViewController.navigationController pushViewController:personalInfoVC animated:YES];
+}
+
+-(void)didDigUserImageViewClickUser:(AVUser *)user{
+    BaseViewController *superViewController = (BaseViewController*)[self getSuperViewController];
+    PersonalInfoViewController *personalInfoVC = [[PersonalInfoViewController alloc]init];
+    personalInfoVC.user = user;
+    
+    [superViewController.navigationController pushViewController:personalInfoVC animated:YES];
+}
+
+-(void)didCommentButtonClick:(NSIndexPath *)indexPath commentUserIndex:(NSInteger)commentUserIndex{
+    BaseViewController *superViewController = (BaseViewController*)[self getSuperViewController];
+    CommentViewController *commentViewController = [[CommentViewController alloc]init];
+    commentViewController.commentViewDelegate = self;
+    commentViewController.indexPath = indexPath;
+    if (_currentPage==1) {
+        commentViewController.publish = self.attetionTableView.lcPublishs[indexPath.row];
+    }
+    else{
+        commentViewController.publish  = self.newlyTableView.lcPublishs[indexPath.row];
+    }
+    commentViewController.commentUserIndex = commentUserIndex;
+    [superViewController.navigationController pushViewController:commentViewController animated:YES];
+}
+
+-(void)didLikeButtonClick:(UIButton *)button indexPath:(NSIndexPath *)indexPath{
+//    NSString *objId = @"";
+    if (_currentPage ==1) {
+        self.attetionTableView.selectedIndexPath = indexPath;
+        [self.attetionTableView addLike];
+    }
+    else{
+        self.newlyTableView.selectedIndexPath = indexPath;
+        [self.newlyTableView addLike];
+    }
+}
+
+#pragma mark commentViewDelegat
+-(void)ReloadTableViewCellForIndex:(NSIndexPath *)indexPath{
+    if (_currentPage==1) {
+        [self.attetionTableView reloadLCPublish:self.attetionTableView.lcPublishs[indexPath.row] AtIndexPath:indexPath];
+    }
+    else{
+     [self.newlyTableView reloadLCPublish:self.newlyTableView.lcPublishs[indexPath.row] AtIndexPath:indexPath];
+    }
+}
+
+#pragma mark Propertys
+-(LCDataHelper*)lcDataHelper{
+    if (_lcDataHelper==nil) {
+        _lcDataHelper = [[LCDataHelper alloc]init];
+    }
+    return _lcDataHelper;
+}
+
+@end

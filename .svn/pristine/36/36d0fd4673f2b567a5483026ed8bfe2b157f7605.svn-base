@@ -1,0 +1,29 @@
+//
+//  BodyBuildingGroupTableViewCell.m
+//  Burning
+//
+//  Created by wei_zhu on 15/7/29.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "BodyBuildingGroupTableViewCell.h"
+#import <SDWebImage/UIImageView+WebCache.h>
+
+@implementation BodyBuildingGroupTableViewCell
+
+- (void)awakeFromNib {
+    // Initialization code
+}
+
+- (void)setSelected:(BOOL)selected animated:(BOOL)animated {
+    [super setSelected:selected animated:animated];
+
+    // Configure the view for the selected state
+}
+
+-(void)setShBodyBuildingGroup:(SHBodyBuildingGroup *)shBodyBuildingGroup{
+    _shBodyBuildingGroup = shBodyBuildingGroup;
+    [self.backImageView sd_setImageWithURL:shBodyBuildingGroup.backGroudUrl placeholderImage:[UIImage imageNamed:@"login_backgroud.jpg"]];
+}
+
+@end

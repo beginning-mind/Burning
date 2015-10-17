@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="7706" systemVersion="14C109" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES">
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="7703"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="TakePhotoViewController">
+            <connections>
+                <outlet property="collectionViewPhotos" destination="x9H-8O-Kg8" id="npk-U7-AG0"/>
+                <outlet property="textComment" destination="DXh-JH-kfr" id="hqf-yP-ptp"/>
+                <outlet property="view" destination="i5M-Pr-FkT" id="sfx-zR-JGt"/>
+            </connections>
+        </placeholder>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <view clearsContextBeforeDrawing="NO" contentMode="scaleToFill" id="i5M-Pr-FkT">
+            <rect key="frame" x="0.0" y="0.0" width="600" height="600"/>
+            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+            <subviews>
+                <collectionView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" dataMode="none" translatesAutoresizingMaskIntoConstraints="NO" id="x9H-8O-Kg8">
+                    <rect key="frame" x="15" y="130" width="570" height="300"/>
+                    <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
+                    <constraints>
+                        <constraint firstAttribute="height" constant="300" id="TrI-iv-meC" userLabel="Height - (200) - Collection View"/>
+                    </constraints>
+                    <collectionViewFlowLayout key="collectionViewLayout" minimumLineSpacing="1" minimumInteritemSpacing="1" id="V8M-NO-Z9v">
+                        <size key="itemSize" width="50" height="50"/>
+                        <size key="headerReferenceSize" width="0.0" height="0.0"/>
+                        <size key="footerReferenceSize" width="0.0" height="0.0"/>
+                        <inset key="sectionInset" minX="0.0" minY="0.0" maxX="0.0" maxY="0.0"/>
+                    </collectionViewFlowLayout>
+                </collectionView>
+                <textField opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="说点什么" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="DXh-JH-kfr">
+                    <rect key="frame" x="15" y="15" width="570" height="100"/>
+                    <constraints>
+                        <constraint firstAttribute="height" constant="100" id="6LU-bL-yJU"/>
+                    </constraints>
+                    <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                    <textInputTraits key="textInputTraits"/>
+                </textField>
+            </subviews>
+            <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
+            <constraints>
+                <constraint firstItem="DXh-JH-kfr" firstAttribute="leading" secondItem="i5M-Pr-FkT" secondAttribute="leading" constant="15" id="HCq-WF-q4w"/>
+                <constraint firstAttribute="trailing" secondItem="x9H-8O-Kg8" secondAttribute="trailing" constant="15" id="PkR-1V-N0E"/>
+                <constraint firstItem="DXh-JH-kfr" firstAttribute="top" secondItem="i5M-Pr-FkT" secondAttribute="top" constant="15" id="ezM-gi-tWy"/>
+                <constraint firstItem="x9H-8O-Kg8" firstAttribute="top" secondItem="DXh-JH-kfr" secondAttribute="bottom" constant="15" id="g7b-Ls-4oG"/>
+                <constraint firstAttribute="trailing" secondItem="DXh-JH-kfr" secondAttribute="trailing" constant="15" id="qIp-Be-E4S"/>
+                <constraint firstItem="x9H-8O-Kg8" firstAttribute="leading" secondItem="i5M-Pr-FkT" secondAttribute="leading" constant="15" id="wMz-9B-vy5"/>
+            </constraints>
+        </view>
+    </objects>
+</document>

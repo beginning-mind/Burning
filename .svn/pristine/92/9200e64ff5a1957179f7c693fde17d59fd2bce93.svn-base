@@ -1,0 +1,239 @@
+//
+//  SearchingVC.m
+//  Burning
+//
+//  Created by Xiang Li on 15/8/15.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "SearchingVC.h"
+#import "CDIM.h"
+#import "PersonNearbyTableViewCell.h"
+#import "GroupTableViewCell.h"
+#import "ModelTransfer.h"
+#import "SHGroup.h"
+#import "PersonalInfoViewController.h"
+#import "GroupDetailViewController.h"
+
+@interface SearchingVC ()<CLLocationManagerDelegate, UITableViewDataSource, UITableViewDelegate>
+
+@property (nonatomic,strong) CLLocationManager *locationManager;
+@property (nonatomic,strong) CLLocation *curLocation;
+
+@property(nonatomic, strong) NSMutableArray *titleArr;
+@property(nonatomic, strong) NSMutableDictionary *contentDict;
+@property (nonatomic, strong) CDIM *im;
+
+@end
+
+@implementation SearchingVC
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    self.title = @"搜索";
+    
+    self.personAndGroupTableView.dataSource = self;
+    self.personAndGroupTableView.delegate = self;
+    
+    //设置不显示多余的白线
+    UIView *view = [UIView new];
+    view.backgroundColor = [UIColor clearColor];
+    [self.personAndGroupTableView setTableFooterView:view];
+    
+    _im = [CDIM sharedInstance];
+    _contentDict = [[NSMutableDictionary alloc]init];
+    
+    [self startLocations];
+}
+
+-(void)startLocations {
+    self.locationManager = [[CLLocationManager alloc]init];
+    if ([CLLocationManager locationServicesEnabled]) {
+        self.locationManager.delegate = self;
+        self.locationManager.distanceFilter = 200;
+        self.locationManager.desiredAccuracy = kCLLocationAccuracyBest;
+        
+        if([self.locationManager respondsToSelector:@selector(requestAlwaysAuthorization)]) {
+            [self.locationManager requestAlwaysAuthorization]; // 永久授权
+            [self.locationManager requestWhenInUseAuthorization]; //使用中授权
+        }
+        
+        [self.locationManager startUpdatingLocation];
+    }
+    else {
+        self.locationManager.delegate = self;
+        self.locationManager.distanceFilter = 200;
+        self.locationManager.desiredAccuracy = kCLLocationAccuracyBest;
+        [self.locationManager startUpdatingLocation];
+    }
+}
+
+-(void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:YES];
+    
+    NSArray *keyArr = [_contentDict allKeys];
+    _titleArr = [keyArr mutableCopy];
+}
+
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+}
+
+#pragma mark CLLocationManagerDelegate
+-(void)locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray *)locations{
+    _curLocation = [locations lastObject];
+    [manager stopUpdatingLocation];
+}
+
+#pragma UITableView Delegate
+-(CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath{
+    return 75;
+}
+
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
+    return _titleArr.count;
+}
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    NSString *key = [_titleArr objectAtIndex:section];
+    return [[_contentDict objectForKey:key] count];
+}
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    NSUInteger section = indexPath.section;
+    NSInteger row = indexPath.row;
+    
+    NSString *key = [_titleArr objectAtIndex:section];
+    NSArray *objs = [_contentDict objectForKey:key];
+    
+    if ([key isEqual:@"用户"]) {
+        PersonNearbyTableViewCell *personNearbyTableViewCell = [tableView dequeueReusableCellWithIdentifier:@"personNearbyTableViewCell"];
+        if(personNearbyTableViewCell==nil){
+            //            NSArray *array = [[NSBundle mainBundle] loadNibNamed:@"PersonNearbyTableViewCell" owner:self options:nil];
+            //            
+            //            personNearbyTableViewCell = [array objectAtIndex:0];
+            personNearbyTableViewCell = [[PersonNearbyTableViewCell alloc]initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"personNearbyTableViewCell"];
+            personNearbyTableViewCell.selectionStyle = UITableViewCellSelectionStyleNone;
+        }
+        
+        if (objs.count >0) {
+            personNearbyTableViewCell.avUser = [objs objectAtIndex:row];
+        }
+        
+        return personNearbyTableViewCell;
+    }else {
+        GroupTableViewCell *groupTableViewCell= [tableView dequeueReusableCellWithIdentifier:@"groupTableViewCell"];
+        if(groupTableViewCell==nil){
+            //            NSArray *array = [[NSBundle mainBundle] loadNibNamed:@"GroupTableViewCell" owner:self options:nil];
+           // groupTableViewCell = [array objectAtIndex:0];
+            groupTableViewCell = [[GroupTableViewCell alloc]initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"groupTableViewCell"];
+            groupTableViewCell.selectionStyle = UITableViewCellSelectionStyleNone;
+        }
+        
+        if (objs.count >0) {
+            SHGroup *showGroup = [ModelTransfer coversation2SHGroup:[objs objectAtIndex:row] AndCurlocation:_curLocation];
+            groupTableViewCell.showGroup = showGroup;
+        }
+    
+        return groupTableViewCell;
+    }
+}
+
+- (UIView *)tableView:(UITableView *)tableView viewForHeaderInSection:(NSInteger)section {
+//    UIView* customView = [[UIView alloc] initWithFrame:CGRectMake(10.0, 0.0, 300.0, 44.0)] ;
+    UIView *customView = [[UIView alloc] init];
+    UILabel * headerLabel = [[UILabel alloc] initWithFrame:CGRectZero];
+    headerLabel.backgroundColor = [UIColor whiteColor];
+    headerLabel.opaque = NO;
+    headerLabel.textColor = [UIColor lightGrayColor];
+    headerLabel.highlightedTextColor = [UIColor whiteColor];
+    headerLabel.font = [UIFont boldSystemFontOfSize:14];
+    headerLabel.frame = CGRectMake(10.0, 0.0, 300.0, 18.0);
+    
+    NSArray *objs = [_contentDict objectForKey:[_titleArr objectAtIndex:section]];
+    if (objs.count==0) {
+        headerLabel.text =  @"";
+    }else {
+        headerLabel.text = [_titleArr objectAtIndex:section];
+    }
+    
+    [customView addSubview:headerLabel];
+    return customView;
+}
+
+-(void) tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    NSUInteger section = indexPath.section;
+    NSInteger row = indexPath.row;
+    
+    NSString *key = [_titleArr objectAtIndex:section];
+    NSArray *objs = [_contentDict objectForKey:key];
+    
+    if ([key isEqual:@"用户"]) {
+        PersonalInfoViewController *personalInfoViewController = [[PersonalInfoViewController alloc]init];
+        personalInfoViewController.user = [objs objectAtIndex:row];
+        [self.navigationController pushViewController:personalInfoViewController animated:YES];
+        
+    } else {
+        GroupDetailViewController *groupDetailViewController = [[GroupDetailViewController alloc]init];
+        
+        SHGroup *showGroup = [ModelTransfer coversation2SHGroup:[objs objectAtIndex:row] AndCurlocation:nil];
+        
+//        SHGroup *shGroup = self.shGroups[indexPath.row];
+        WEAKSELF
+        [self showProgress];
+        [_im fecthConvWithId:showGroup.conversationId callback:^(AVIMConversation *conversation, NSError *error) {
+            [weakSelf hideProgress];
+            if (error) {
+                [weakSelf alert:@"获取对话失败 :("];
+            } else {
+                groupDetailViewController.conversion = conversation;
+                [weakSelf.navigationController pushViewController:groupDetailViewController animated:YES];
+            }
+            
+        }];
+    }
+}
+
+
+- (IBAction)searchingAction:(id)sender {
+    if (self.searchingTextField.text.length == 0) {
+        [self alert:@"请填写 群组/用户 号码"];
+    }else {
+        [self.searchingTextField resignFirstResponder];
+        NSString *number = self.searchingTextField.text;
+        WEAKSELF
+        [self showProgress];
+        [self.lcDataHelper fetchPersonWithSequenceId:[number intValue] Block:^(NSArray *objects, NSError *error) {
+            if (error) {
+                [weakSelf alert:@"序列查询失败"];
+            }else {
+                if (objects) {
+                    [_contentDict setObject:objects  forKey:@"用户"];
+                    
+                    [self viewWillAppear:YES];
+                    [self.personAndGroupTableView reloadData];
+                }
+            }
+            [weakSelf hideProgress];
+        }];
+        
+        CDIM *im = [CDIM sharedInstance];
+        [im fetchConvsWithSequenceNum:[number intValue] callback:^(NSArray *objects, NSError *error) {
+            if (error) {
+                [weakSelf alert:@"序列查询失败"];
+            }else {
+                if (objects) {
+                    [_contentDict setObject:objects  forKey:@"群组"];
+
+                    [self viewWillAppear:YES];
+                    [self.personAndGroupTableView reloadData];
+                }
+            }
+            [weakSelf hideProgress];
+        }];
+        
+    }
+}
+
+@end

@@ -1,0 +1,192 @@
+//
+//  BodyBuildingViewController.m
+//  Burning
+//
+//  Created by wei_zhu on 15/7/29.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "BodyBuildingViewController.h"
+#import "BodyBuildingTableCell.h"
+#import "MoviePlayerViewController.h"
+#import "Reachability.h"
+#import <STAlertView.h>
+#import "SVGloble.h"
+
+@interface BodyBuildingViewController ()
+
+@property(nonatomic,strong)UITableView *tableView;
+
+@property(nonatomic,strong)STAlertView *alertView;
+
+@end
+
+@implementation BodyBuildingViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    SHBodyBuilding *curSHBodyBuilding = self.shBodyBuildings[0];
+    self.title = curSHBodyBuilding.group;
+    
+    self.tableView = [[UITableView alloc]initWithFrame:CGRectMake(0, 0, [SVGloble shareInstance].globleWidth,[SVGloble shareInstance].globleAllHeight) style:UITableViewStyleGrouped];
+    
+    self.tableView.separatorStyle = UITableViewCellSeparatorStyleNone;
+    self.tableView.sectionFooterHeight=0;
+    
+    [self.view addSubview:self.tableView];
+    self.tableView.dataSource = self;
+    self.tableView.delegate = self;
+    
+    [self.tableView reloadData];
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+#pragma mark tableViewDelegate
+
+-(NSInteger)numberOfSectionsInTableView:(UITableView *)tableView{
+    return self.shBodyBuildings.count;
+}
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section{
+    return 1;
+}
+
+-(CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath{
+    SHBodyBuilding *curShbodyBuilding =self.shBodyBuildings[indexPath.section];
+    //test
+    NSString *title = curShbodyBuilding.title;
+    UIImage *image;
+    if ([title isEqualToString:@"杠铃上斜板"]) {
+        image = [UIImage imageNamed:@"杠铃上斜板-cpm-400x110"];
+    }
+    else if([title isEqualToString:@"杠铃下斜板"]){
+        image = [UIImage imageNamed:@"杠铃下斜板-cpm-400x110"];
+    }
+    else if([title isEqualToString:@"蝴蝶夹胸"]){
+    image = [UIImage imageNamed:@"蝴蝶夹胸-cpm-400x110"];
+    }
+    else if([title isEqualToString:@"上斜板飞鸟"]){
+    image = [UIImage imageNamed:@"上斜板飞鸟-cpm-400x110"];
+    }
+    else if([title isEqualToString:@"双杠屈伸"]){
+    image = [UIImage imageNamed:@"双杠屈伸-cmp-400x100"];
+    }
+    else if ([title isEqualToString:@"卧推"]){
+    image = [UIImage imageNamed:@"卧推-cmp-400x100"];
+    }
+    else if([title isEqualToString:@"哑铃上斜板"]){
+    image = [UIImage imageNamed:@"哑铃上斜板-cpm-400x110"];
+    }
+    else{
+    image = [UIImage imageNamed:@"哑铃卧推-cpm-400x110"];
+    }
+    
+    CGFloat imgW = image.size.width;
+    CGFloat imgH = image.size.height;
+    
+//    AVFile *backFile =curShbodyBuilding.backFile;
+//    NSString *sizestr = [backFile.metaData valueForKey:@"imgSize"];
+//    NSArray *sizeArry = [sizestr componentsSeparatedByString:@","];
+//    NSString *wStr = sizeArry[0];
+//    CGFloat imgW  =wStr.floatValue;
+//    NSString *hstr = sizeArry[1];
+//    CGFloat imgH = hstr.floatValue;
+    CGFloat ration = imgW/imgH;
+    return [SVGloble shareInstance].globleWidth/ration;
+}
+
+-(UITableViewCell*)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath{
+    
+    BodyBuildingTableCell *bodyBuildingCell= [tableView dequeueReusableCellWithIdentifier:@"bodyBuildingCell"];
+    if(bodyBuildingCell==nil){
+        bodyBuildingCell = [[BodyBuildingTableCell alloc]initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"bodyBuildingCell"];
+    }
+    bodyBuildingCell.shBodyBuilding=self.shBodyBuildings[indexPath.section];
+//    bodyBuildingCell.bodyBuildingTableViewCellDelegate = (id)self;
+    
+    return bodyBuildingCell;
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath{
+    SHBodyBuilding *curSHBodyBuilding = self.shBodyBuildings[indexPath.section];
+    NSString *title = curSHBodyBuilding.title;
+    NSString *url = curSHBodyBuilding.videoFile.url;
+    NSURL *nsurl = [NSURL URLWithString:url];
+    Reachability *reachability = [Reachability reachabilityWithHostName:@"www.apple.com"];
+    //结果说明：0-无连接   1-wifi    2-3G
+    NSInteger stateNet = [reachability currentReachabilityStatus];
+    if (stateNet==0) {
+        self.alertView = [[STAlertView alloc]initWithTitle:nil message:@"没有网络连接" cancelButtonTitle:@"确定" otherButtonTitle:nil cancelButtonBlock:^{
+        } otherButtonBlock:^{
+        }];
+    }
+    else if (stateNet ==1){
+        NSURL * playurl = [NSURL URLWithString:@"http://ac-kdpf0ea8.clouddn.com/4846dcd4-1a0a-f961-8855-06ea75240eba.flv"];
+        MoviePlayerViewController *movieVC = [[MoviePlayerViewController alloc]initNetworkMoviePlayerViewControllerWithURL:playurl movieTitle:title];
+        movieVC.datasource = (id)self;
+        [self presentViewController:movieVC animated:YES completion:nil];
+    }
+    else if(stateNet ==2){
+        self.alertView = [[STAlertView alloc]initWithTitle:nil message:@"当前网络环境是3G,确定观看" cancelButtonTitle:@"退出" otherButtonTitle:@"确定" cancelButtonBlock:^{
+        } otherButtonBlock:^{
+            NSURL * playurl = [NSURL URLWithString:url];
+            MoviePlayerViewController *movieVC = [[MoviePlayerViewController alloc]initNetworkMoviePlayerViewControllerWithURL:playurl movieTitle:title];
+            movieVC.datasource = (id)self;
+            [self presentViewController:movieVC animated:YES completion:nil];
+        }];
+    }
+}
+
+- (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:( NSInteger )section
+{
+    return 5.0 ;
+}
+
+
+//#pragma mark BodyBuildingTableViewCellDelegate
+-(void)playVideo:(NSString*)url title:(NSString*)title{
+    Reachability *reachability = [Reachability reachabilityWithHostName:@"www.apple.com"];
+    //结果说明：0-无连接   1-wifi    2-3G
+    NSInteger stateNet = [reachability currentReachabilityStatus];
+    if (stateNet==0) {
+        self.alertView = [[STAlertView alloc]initWithTitle:nil message:@"没有网络连接" cancelButtonTitle:@"确定" otherButtonTitle:nil cancelButtonBlock:^{
+        } otherButtonBlock:^{
+        }];
+    }
+    else if (stateNet ==1){
+        NSURL * playurl = [NSURL URLWithString:@"http://ac-kdpf0ea8.clouddn.com/4846dcd4-1a0a-f961-8855-06ea75240eba.flv"];
+        MoviePlayerViewController *movieVC = [[MoviePlayerViewController alloc]initNetworkMoviePlayerViewControllerWithURL:playurl movieTitle:title];
+        movieVC.datasource = (id)self;
+        [self presentViewController:movieVC animated:YES completion:nil];
+    }
+    else if(stateNet ==2){
+        self.alertView = [[STAlertView alloc]initWithTitle:nil message:@"当前网络环境是3G,确定观看" cancelButtonTitle:@"退出" otherButtonTitle:@"确定" cancelButtonBlock:^{
+        } otherButtonBlock:^{
+            NSURL * playurl = [NSURL URLWithString:url];
+            MoviePlayerViewController *movieVC = [[MoviePlayerViewController alloc]initNetworkMoviePlayerViewControllerWithURL:playurl movieTitle:title];
+            movieVC.datasource = (id)self;
+            [self presentViewController:movieVC animated:YES completion:nil];
+        }];
+    }
+}
+
+#pragma mark MoviePlayerViewController delegate
+- (BOOL)isHavePreviousMovie{
+    return NO;
+}
+- (BOOL)isHaveNextMovie{
+    return NO;
+}
+- (NSDictionary *)previousMovieURLAndTitleToTheCurrentMovie{
+    NSDictionary *dic = [NSDictionary dictionaryWithObjectsAndKeys:[NSURL URLWithString:@"http://119.188.38.137/youku/6774B396A913A82B3F37114283/030008010055012F1BE2C803847FFEF58A6F45-1628-788A-BF3F-D0BD80780F72.mp4"],KURLOfMovieDicTionary,@"qqqqqqq",KTitleOfMovieDictionary, nil];
+    return dic;
+}
+- (NSDictionary *)nextMovieURLAndTitleToTheCurrentMovie{
+    return nil;
+}
+
+@end

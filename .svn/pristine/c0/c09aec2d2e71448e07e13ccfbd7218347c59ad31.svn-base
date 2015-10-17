@@ -1,0 +1,36 @@
+//
+//  SHBodyBuilding.h
+//  Burning
+//
+//  Created by wei_zhu on 15/7/29.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+#import <AVOSCloud.h>
+
+@interface SHBodyBuildingGroup : NSObject
+
+@property(nonatomic,strong)AVFile *backFile;
+
+@property(nonatomic,copy)NSString *title;
+
+@property(nonatomic,assign)NSInteger *playCount;
+
+@property(nonatomic,copy)NSString *group;
+
+@end
+
+@interface SHBodyBuilding : NSObject
+
+@property(nonatomic,strong)AVFile *backFile;
+
+@property(nonatomic,copy)NSString *title;
+
+@property(nonatomic,copy)NSString *group;
+
+@property(nonatomic,strong)AVFile *videoFile;
+
+@property(nonatomic,assign)NSInteger *playCount;
+
+@end

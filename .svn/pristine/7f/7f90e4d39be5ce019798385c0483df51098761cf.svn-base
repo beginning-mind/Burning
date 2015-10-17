@@ -1,0 +1,232 @@
+//
+//  AddUserTableViewCell.m
+//  Burning
+//
+//  Created by Xiang Li on 15/6/24.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "AddUserTableViewCell.h"
+#import "LayoutConst.h"
+#import <SDWebImage/UIImageView+WebCache.h>
+#import "SVGloble.h"
+#import "LCDataHelper.h"
+#import "PersonalInfoViewController.h"
+
+@interface AddUserTableViewCell()
+
+@property (nonatomic,strong)UIImageView *avatarImageView;
+@property (nonatomic,strong)UILabel *usernameLabel;
+@property (nonatomic,strong)UILabel *sigNatureLabel;
+@property (nonatomic,strong)UIButton *selectedButton;
+@property (nonatomic)BOOL isOn;
+
+
+@end
+
+@implementation AddUserTableViewCell
+
+- (void)awakeFromNib {
+    // Initialization code
+}
+
+- (void)setSelected:(BOOL)selected animated:(BOOL)animated {
+    [super setSelected:selected animated:animated];
+
+    // Configure the view for the selected state
+}
+
++(NSFont*)contentFont{
+    return  [UIFont systemFontOfSize:kCommonTextTopSpace];
+}
+
++(CGFloat)getContentLabelHeightWithText:(NSString*)text{
+    if(text==nil){
+        return 0;
+    }
+    return [self getLabelHeightWithText:text maxWidth:[[self class] contentWidth] font:[self contentFont]];
+}
+
++(CGFloat)getLabelHeightWithText:(NSString*)text maxWidth:(CGFloat)maxWidth font:(NSFont*)font{
+    return [text boundingRectWithSize:CGSizeMake(maxWidth,CGFLOAT_MAX) options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName:font} context:nil].size.height;
+}
+
++(CGFloat)calculateCellHeightWithUser:(AVUser*)user{
+    if(user==nil){
+        return 0;
+    }
+    CGFloat richTextHeight=kSmallSpace;
+    richTextHeight+=kPubShowUsernameHeight;
+    richTextHeight+=kPubShowContentLineSpacing;
+    NSString *signature;
+    if ([user objectForKey:@"signature"]==nil || [[user objectForKey:@"signature"] isEqualToString:@""]) {
+        signature = @"这家伙很懒，什么也没留下";
+    }
+    else{
+        signature = [user objectForKey:@"signature"];
+    }
+    
+    richTextHeight+=[[self class] getContentLabelHeightWithText:signature];
+    //NSLog(@"richTextHeight:%f", [[self class] getContentLabelHeightWithText:signature]);
+    richTextHeight+=kSmallSpace;
+    
+    CGFloat avatarSize = 2*kSmallSpace+kCommonAvatarSize;
+    return richTextHeight>avatarSize? richTextHeight :avatarSize;
+}
+
++(CGFloat)contentWidth{
+    return CGRectGetWidth([[UIScreen mainScreen] bounds])-3*kSmallSpace-kCommonAvatarSize;
+}
+
+
+-(UIImageView*)avatarImageView{
+
+    if(_avatarImageView==nil){
+        _avatarImageView=[[UIImageView alloc] initWithFrame:CGRectMake(kPubShowAvatarSpacing,kCommonSpace, kCommonAvatarSize, kCommonAvatarSize)];
+//        _avatarImageView.layer.masksToBounds =YES;
+//        _avatarImageView.layer.cornerRadius =kPubShowAvatarImageSize/2.0;
+        _avatarImageView.userInteractionEnabled = YES;
+        UITapGestureRecognizer *singleTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(avatarClick:)];
+        [_avatarImageView addGestureRecognizer:singleTap];
+    }
+    return _avatarImageView;
+}
+
+-(void)avatarClick:(UIGestureRecognizer*)gestureRecognizer{
+    LCDataHelper *lcDataHelper = [[LCDataHelper alloc]init];
+    [lcDataHelper getUserWithObjectId:self.user.objectId block:^(NSArray *objects, NSError *error) {
+        if (!error) {
+            if (objects.count>0) {
+                AVUser *user = objects[0];
+                PersonalInfoViewController *personalVC = [[PersonalInfoViewController alloc]init];
+                personalVC.user = user;
+                
+                BaseViewController *baseVC = [self getSuperViewController];
+                [baseVC.navigationController pushViewController:personalVC animated:YES];
+            }
+        }
+    }];
+    
+}
+
+//需要cell基础类！
+- (UIViewController*)getSuperViewController{
+    for (UIView* next = [self superview]; next; next = next.superview) {
+        UIResponder* nextResponder = [next nextResponder];
+        if ([nextResponder isKindOfClass:[UIViewController class]]) {
+            return (UIViewController*)nextResponder;
+        }
+    }
+    return nil;
+}
+
+-(UILabel*)usernameLabel{
+    if(_usernameLabel==nil){
+        _usernameLabel=[[UILabel alloc] initWithFrame:CGRectMake(CGRectGetMaxX(_avatarImageView.frame)+kPubShowAvatarSpacing, kPubShowAvatarSpacing,[[self class] contentWidth]-40 , kPubShowUsernameHeight)];
+        _usernameLabel.backgroundColor=[UIColor clearColor];
+        _usernameLabel.textColor= [UIColor blackColor];
+    }
+    return _usernameLabel;
+}
+
+-(UILabel*)sigNatureLabel{
+    if(!_sigNatureLabel){
+//        _sigNatureLabel=[[UILabel alloc] initWithFrame:CGRectMake(CGRectGetMinX(_usernameLabel.frame), CGRectGetMaxY(_usernameLabel.frame)+kPubShowContentLineSpacing, CGRectGetWidth(_usernameLabel.frame), 10)];
+        _sigNatureLabel=[[UILabel alloc] initWithFrame:CGRectMake(CGRectGetMinX(_usernameLabel.frame), CGRectGetMaxY(_usernameLabel.frame)+kPubShowContentLineSpacing, [[self class] contentWidth], 10)];
+
+        
+        _sigNatureLabel.font=[UIFont systemFontOfSize:kCommonFontSize];
+        _sigNatureLabel.backgroundColor=[UIColor clearColor];
+        _sigNatureLabel.textColor = [UIColor grayColor];
+        
+        _sigNatureLabel.numberOfLines=0;
+    }
+    return _sigNatureLabel;
+}
+
+-(UIButton*)selectedButton{
+    if (_selectedButton==nil) {
+        _selectedButton = [[UIButton alloc]initWithFrame:CGRectMake([SVGloble shareInstance].globleWidth-kPubShowAvatarSpacing-60, kPubShowAvatarSpacing, 60, 30)];
+        [_selectedButton addTarget:self action:@selector(addUserBtnClick:) forControlEvents:UIControlEventTouchUpInside];
+        _selectedButton.titleLabel.font = [UIFont systemFontOfSize: 12.0];
+        [_selectedButton setTitleColor:[UIColor colorWithRed:30.0/255 green:172.0/255 blue:199.0/255 alpha:1] forState:UIControlStateNormal];
+        
+        _selectedButton.contentHorizontalAlignment=UIControlContentHorizontalAlignmentRight;
+        
+        _selectedButton.contentVerticalAlignment = UIControlContentVerticalAlignmentTop;
+        [_selectedButton setTitle:@"添加" forState:UIControlStateNormal];
+        
+    }
+    return  _selectedButton;
+}
+
+-(id)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier{
+    
+    _isOn = NO;
+    self=[super initWithStyle:style reuseIdentifier:reuseIdentifier];
+    if(self){
+        [self setup];
+    }
+    return self;
+}
+
+-(void)setup{
+    [self addSubview:self.avatarImageView];
+    [self addSubview:self.usernameLabel];
+    [self addSubview:self.sigNatureLabel];
+    [self addSubview:self.selectedButton];
+}
+
+-(void)setUser:(AVUser *)user{
+    _user = user;
+    
+    AVFile *avFile = [user objectForKey:@"avatar"];
+    [self.avatarImageView setImageWithURL:[NSURL URLWithString:avFile.url] placeholderImage:[UIImage imageNamed:@"blank_avatar.jpg"]];
+    
+    
+    self.usernameLabel.text = user.username;
+    NSString *signature= [user objectForKey:@"signature"];
+    if (signature==nil || [signature isEqualToString:@""]) {
+        self.sigNatureLabel.text = @"这家伙很懒，什么也没留下";
+    }
+    else{
+        self.sigNatureLabel.text  = signature;
+    }
+    
+    [self setNeedsLayout];
+}
+
+-(void)layoutSubviews{
+    [super layoutSubviews];
+    
+    NSString *signature= [_user objectForKey:@"signature"];
+    if (signature==nil || [signature isEqualToString:@""]) {
+        signature = @"这家伙很懒，什么也没留下";
+    }
+    _sigNatureLabel.frame = CGRectMake(CGRectGetMinX(_usernameLabel.frame), CGRectGetMaxY(_usernameLabel.frame)+kPubShowContentLineSpacing, CGRectGetWidth(_usernameLabel.frame), [[self class] getContentLabelHeightWithText:signature]);
+}
+
+#pragma mark action
+-(void)addUserBtnClick:(UIButton*)button{
+    if (_isOn) {
+        _isOn = NO;
+        [_selectedButton setTitleColor:[UIColor colorWithRed:30.0/255 green:172.0/255 blue:199.0/255 alpha:1] forState:UIControlStateNormal];
+        [button setTitle:@"添加" forState:UIControlStateNormal];
+        button.titleLabel.font = [UIFont systemFontOfSize:12.0f];
+        if([_addUserTableViewCellDelegate respondsToSelector:@selector(addOrDeleteAUserWithFlag:avUser:indexPath:)]) {
+            [_addUserTableViewCellDelegate addOrDeleteAUserWithFlag:NO avUser:self.user indexPath:self.indexPath];
+        }
+    } else {
+        _isOn = YES;
+        [_selectedButton setTitleColor:[UIColor colorWithRed:30.0/255 green:172.0/255 blue:199.0/255 alpha:1] forState:UIControlStateNormal];
+        [button setTitle:@"✓" forState:UIControlStateNormal];
+        button.titleLabel.font = [UIFont systemFontOfSize:20.0f];
+        
+        if([_addUserTableViewCellDelegate respondsToSelector:@selector(addOrDeleteAUserWithFlag:avUser:indexPath:)]) {
+            [_addUserTableViewCellDelegate addOrDeleteAUserWithFlag:YES avUser:self.user indexPath:self.indexPath];
+        }
+    }
+}
+
+
+@end

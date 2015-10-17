@@ -1,0 +1,142 @@
+//
+//  DailyNewsRichTextView.m
+//  Burning
+//
+//  Created by wei_zhu on 15/7/3.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "DailyNewsRichTextView.h"
+#import "LayoutConst.h"
+#import <SDWebImage/UIImageView+WebCache.h>
+#import "NSString+DynamicHeight.h"
+
+@interface DailyNewsRichTextView()
+
+@property(nonatomic,strong)UILabel *titleLabel;
+
+@property(nonatomic,strong)UIImageView *imageView;
+
+@property(nonatomic,strong)UILabel *contentLabel;
+
+@end
+
+@implementation DailyNewsRichTextView
+
++(CGFloat)contentWidth{
+    return CGRectGetWidth([[UIScreen mainScreen] bounds])-4*kSmallSpace;
+}
+
++(CGFloat)calculateRichTextHeightWithSHDailyNews:(SHDailyNews *)shDailyNews{
+    if(shDailyNews==nil){
+        return 0;
+    }
+    CGFloat richTextHeight=kCommonSpace;
+    
+    if (shDailyNews.title==nil || [shDailyNews.title isEqualToString:@""]) {
+        richTextHeight +=0;
+    }
+    else{
+        richTextHeight+=[NSString getTextHeight:shDailyNews.title textFont:[UIFont systemFontOfSize:kCommonFontSize] width:[[self class] contentWidth]];
+//        richTextHeight+=kPubShowContentLineSpacing;
+    }
+    
+    if (shDailyNews.coverUrl ==nil || [shDailyNews.coverUrl isEqualToString:@""]) {
+        richTextHeight+=0;
+    }
+    else{
+        richTextHeight+=kDailyNewsImageSize;
+        richTextHeight+=kCommonSpace;
+    }
+    
+    if (shDailyNews.abstract ==nil || [shDailyNews.abstract isEqualToString:@""]) {
+        richTextHeight+=0;
+    }
+    else{
+        richTextHeight+=kCommonSpace;
+        richTextHeight+=[NSString getTextHeight:shDailyNews.abstract textFont:[UIFont systemFontOfSize:kCommonFontSize] width:[[self class] contentWidth]];
+    }
+
+    richTextHeight+=kCommonSpace;
+    return richTextHeight;
+}
+
+-(UILabel*)titleLabel{
+    if(!_titleLabel){
+        _titleLabel=[[UILabel alloc] initWithFrame:CGRectZero];
+        _titleLabel.font=[UIFont systemFontOfSize:kCommonFontSize];
+        _titleLabel.backgroundColor=[UIColor clearColor];
+        _titleLabel.numberOfLines=0;
+    }
+    return _titleLabel;
+}
+
+-(UIImageView*)imageView{
+    if(_imageView==nil){
+        _imageView=[[UIImageView alloc] initWithFrame:CGRectZero];
+    }
+    return _imageView;
+}
+
+-(UILabel*)contentLabel{
+    if(!_contentLabel){
+        _contentLabel=[[UILabel alloc] initWithFrame:CGRectZero];
+        _contentLabel.font=[UIFont systemFontOfSize:kCommonFontSize];
+        _contentLabel.backgroundColor=[UIColor clearColor];
+        _contentLabel.numberOfLines=0;
+    }
+    return _contentLabel;
+}
+
+-(void)setShDailyNews:(SHDailyNews *)shDailyNews{
+
+    _shDailyNews = shDailyNews;
+    self.titleLabel.text = shDailyNews.title;
+    
+    [self.imageView sd_setImageWithURL:[NSURL URLWithString:shDailyNews.coverUrl] placeholderImage:[UIImage imageNamed:@"share.jpg"]];
+    
+    self.contentLabel.text = shDailyNews.abstract;
+    
+    [self setNeedsLayout];
+}
+
+-(void)setup{
+    [self addSubview:self.titleLabel];
+    [self addSubview:self.imageView];
+    [self addSubview:self.contentLabel];
+}
+
+-(instancetype)initWithFrame:(CGRect)frame{
+    self = [super initWithFrame:frame];
+    if (self) {
+        [self setup];
+    }
+    return self;
+}
+
+-(void)layoutSubviews{
+    [super layoutSubviews];
+    CGFloat height =[NSString getTextHeight:_shDailyNews.title textFont:[UIFont systemFontOfSize:kCommonFontSize] width:[[self class] contentWidth]];
+
+    
+    _titleLabel.frame = CGRectMake(2*kSmallSpace, kCommonSpace, [[self class] contentWidth], height);
+    
+    if (_shDailyNews.coverUrl !=nil) {
+        _imageView.frame = CGRectMake(2*kSmallSpace, CGRectGetMaxY(_titleLabel.frame)+kCommonSpace, [[self class] contentWidth], kDailyNewsImageSize);
+    }
+    
+    height = [NSString getTextHeight:_shDailyNews.abstract textFont:[UIFont systemFontOfSize:kCommonFontSize] width:[[self class] contentWidth]];
+
+    if (_shDailyNews.coverUrl ==nil) {
+        _contentLabel.frame = CGRectMake(2*kSmallSpace, CGRectGetMaxY(_titleLabel.frame)+kCommonSpace, [[self class] contentWidth], height);
+    }
+    else{
+        _contentLabel.frame = CGRectMake(2*kSmallSpace, CGRectGetMaxY(_imageView.frame)+kCommonSpace, [[self class] contentWidth], height);
+    }
+    
+    CGRect fram = self.frame;
+    fram.size.height = CGRectGetMaxY(_contentLabel.frame);
+    self.frame = fram;
+}
+
+@end

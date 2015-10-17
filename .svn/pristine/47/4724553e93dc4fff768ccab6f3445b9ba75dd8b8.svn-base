@@ -1,0 +1,27 @@
+//
+//  SettingsViewController.h
+//  Burning
+//
+//  Created by Xiang Li on 15/7/28.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "BaseViewController.h"
+#import <STAlertView/STAlertView.h>
+
+@interface SettingsViewController : BaseViewController
+@property (weak, nonatomic) IBOutlet UIButton *cleanCacheButton;
+@property (weak, nonatomic) IBOutlet UIButton *feebackButton;
+@property (weak, nonatomic) IBOutlet UIButton *exitCurrentAccountButton;
+
+@property(nonatomic, strong) STAlertView *dissmissDialog;
+
+- (IBAction)changePasswordAction:(id)sender;
+- (IBAction)cleanCacheAction:(id)sender;
+- (IBAction)feedbackAction:(id)sender;
+- (IBAction)exitCurrentAcountAction:(id)sender;
+- (IBAction)goAppStoreBtn:(id)sender;
+
+
+
+@end

@@ -1,0 +1,403 @@
+//
+//  CDStorage.m
+//  LeanChat
+//
+//  Created by lzw on 15/1/29.
+//  Copyright (c) 2015年 AVOS. All rights reserved.
+//
+
+#import "CDStorage.h"
+#import "CDMacros.h"
+#import "AVIMConversation+Custom.h"
+#import "CDMessage.h"
+
+//#define MSG_TABLE_SQL @"CREATE TABLE IF NOT EXISTS `msgs` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `msg_id` VARCHAR(63) UNIQUE NOT NULL,`convid` VARCHAR(63) NOT NULL,`object` BLOB NOT NULL,`time` VARCHAR(63) NOT NULL)"
+//#define ROOMS_TABLE_SQL @"CREATE TABLE IF NOT EXISTS `rooms` (`id` INTEGER PRIMARY KEY AUTOINCREMENT,`convid` VARCHAR(63) UNIQUE NOT NULL,`unread_count` INTEGER DEFAULT 0)"
+
+
+#define MSG_TABLE_SQL @"CREATE TABLE IF NOT EXISTS `msgs` (`id` INTEGER PRIMARY KEY AUTOINCREMENT,`msg_id` VARCHAR(63) UNIQUE NOT NULL,`convid` VARCHAR(63) NOT NULL,`conv_type` INTEGER, `msg_type` INTEGER, `is_confirmed` INTEGER DEFAULT 0, `real_convid`  VARCHAR(63),`object` BLOB NOT NULL,`time` VARCHAR(63) NOT NULL)"
+
+#define ROOMS_TABLE_SQL @"CREATE TABLE IF NOT EXISTS `rooms` (`id` INTEGER PRIMARY KEY AUTOINCREMENT,`convid` VARCHAR(63) UNIQUE NOT NULL,`conv_type` INTEGER, `unread_count` INTEGER DEFAULT 0)"
+
+#define FIELD_ID @"id"
+#define FIELD_CONVID @"convid"
+#define FIELD_OBJECT @"object"
+#define FIELD_TIME @"time"
+#define FIELD_MSG_ID @"msg_id"
+#define FIELD_TYPE @"conv_type"
+#define MSG_TYPE @"msg_type"
+#define FIELD_IS_CONFIRMED @"is_confirmed"//系统消息，是否被确认标志，默认0未确认
+#define FIELD_REAL_CONVID @"real_convid"//当一个消息为系统对话的消息时，它正真的对话ID
+
+#define FIELD_UNREAD_COUNT @"unread_count"
+
+static CDStorage *_storage;
+
+@interface CDStorage () {
+}
+
+@property FMDatabaseQueue *dbQueue;
+
+@end
+
+@implementation CDStorage
+
++ (instancetype)sharedInstance {
+    if (_storage == nil) {
+        _storage = [[CDStorage alloc] init];
+    }
+    return _storage;
+}
+
+- (void)close {
+    _storage = nil;
+}
+
+- (NSString *)dbPathWithUserId:(NSString *)userId {
+    NSString *libPath = [NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES) objectAtIndex:0];
+    return [libPath stringByAppendingPathComponent:[NSString stringWithFormat:@"chat_%@", userId]];
+}
+
+- (void)setupWithUserId:(NSString *)userId {
+    _dbQueue = [FMDatabaseQueue databaseQueueWithPath:[self dbPathWithUserId:userId]];
+    [_dbQueue inDatabase: ^(FMDatabase *db) {
+        [db executeUpdate:MSG_TABLE_SQL];
+        [db executeUpdate:ROOMS_TABLE_SQL];
+    }];
+}
+
+#pragma mark - msgs table
+
+- (NSArray *)getMsgsWithConvid:(NSString *)convid maxTime:(int64_t)time limit:(NSInteger)limit {
+    __block NSArray *msgs = nil;
+    [_dbQueue inDatabase: ^(FMDatabase *db) {
+        NSString *timeStr = [self strOfInt64:time];
+        FMResultSet *rs = [db executeQuery:@"select * from msgs where convid=? and time<? order by time desc limit ?" withArgumentsInArray:@[convid, timeStr, @(limit)]];
+        msgs = [self reverseArray:[self getMsgsByResultSet:rs]];
+    }];
+    return msgs;
+}
+
+- (NSArray *)getMsgsWithConvid:(NSString *)convid {
+    __block NSArray *msgs = nil;
+    [_dbQueue inDatabase: ^(FMDatabase *db) {
+        FMResultSet *rs = [db executeQuery:@"select * from msgs where convid=? " withArgumentsInArray:@[convid]];
+        msgs = [self reverseArray:[self getMsgsByResultSet:rs]];
+    }];
+    return msgs;
+}
+
+- (NSArray *)getMsgsWithConvType:(NSInteger)convType {
+    __block NSArray *msgs = nil;
+    [_dbQueue inDatabase: ^(FMDatabase *db) {
+        FMResultSet *rs = [db executeQuery:@"select * from msgs where conv_type=? " withArgumentsInArray:@[@(convType)]];
+        msgs = [self reverseArray:[self getMsgsByResultSet:rs]];
+    }];
+    return msgs;
+}
+
+- (NSArray *)getSystemMsgs {
+    __block NSArray *msgs = nil;
+    [_dbQueue inDatabase: ^(FMDatabase *db) {
+        FMResultSet *rs = [db executeQuery:@"select * from msgs where conv_type=2"];
+        msgs = [self reverseArray:[self getMsgsByResultSet:rs]];
+    }];
+    return msgs;
+}
+
+
+
+- (AVIMTypedMessage *)getMsgByMsgId:(NSString *)msgId {
+    __block AVIMTypedMessage *msg = nil;
+    [_dbQueue inDatabase: ^(FMDatabase *db) {
+        FMResultSet *rs = [db executeQuery:@"SELECT * FROM msgs where msg_id=?" withArgumentsInArray:@[msgId]];
+        if ([rs next]) {
+            msg = [self getMsgByResultSet:rs];
+        }
+        [rs close];
+    }];
+    return msg;
+}
+
+- (BOOL)updateMsg:(AVIMTypedMessage *)msg byMsgId:(NSString *)msgId {
+    __block BOOL result;
+    [_dbQueue inDatabase: ^(FMDatabase *db) {
+        NSData *data = [NSKeyedArchiver archivedDataWithRootObject:msg];
+        result = [db executeUpdate:@"UPDATE msgs SET object=? WHERE msg_id=?" withArgumentsInArray:@[data, msgId]];
+    }];
+    return result;
+}
+
+- (BOOL)updateMsgConfirmStatusByMsgId:(NSString *)msgId {
+    __block BOOL result;
+    [_dbQueue inDatabase: ^(FMDatabase *db) {
+        result = [db executeUpdate:@"UPDATE msgs SET is_confirmed=1 WHERE msg_id=?" withArgumentsInArray:@[msgId]];
+    }];
+    return result;
+}
+
+- (BOOL)updateFailedMsg:(AVIMTypedMessage *)msg byTmpId:(NSString *)tmpId {
+    __block BOOL result;
+    [_dbQueue inDatabase: ^(FMDatabase *db) {
+        NSData *data = [NSKeyedArchiver archivedDataWithRootObject:msg];
+        result = [db executeUpdate:@"UPDATE msgs SET object=?,time=?,msg_id=? WHERE msg_id=?"
+        withArgumentsInArray      :@[data, [self strOfInt64:msg.sendTimestamp], msg.messageId, tmpId]];
+    }];
+    return result;
+}
+
+- (BOOL)updateStatus:(AVIMMessageStatus)status byMsgId:(NSString *)msgId {
+    AVIMTypedMessage *msg = [self getMsgByMsgId:msgId];
+    if (msg) {
+        msg.status = status;
+        return [self updateMsg:msg byMsgId:msgId];
+    }
+    else {
+        return NO;
+    }
+}
+
+- (NSMutableArray *)getMsgsByResultSet:(FMResultSet *)rs {
+    NSMutableArray *result = [NSMutableArray array];
+    while ([rs next]) {
+        AVIMTypedMessage *msg = [self getMsgByResultSet:rs];
+        if (msg != nil) {
+            [result addObject:msg];
+        }
+    }
+    [rs close];
+    return result;
+}
+
+- (AVIMTypedMessage *)getMsgByResultSet:(FMResultSet *)rs {
+    NSData *data = [rs objectForColumnName:FIELD_OBJECT];
+    NSString *realConvid = [rs stringForColumn:FIELD_REAL_CONVID];
+    NSInteger type = [rs intForColumn:FIELD_TYPE];
+    NSInteger msgType = [rs intForColumn:MSG_TYPE];
+    NSInteger isConfirmed = [rs intForColumn:FIELD_IS_CONFIRMED];
+    if ([data isKindOfClass:[NSData class]] && data.length > 0) {
+        AVIMTypedMessage *msg;
+        @try {
+            msg = [NSKeyedUnarchiver unarchiveObjectWithData:data];
+            NSLog(@"msg:%@",msg);
+            if (type ==CDConvTypeSystem) {
+                NSDictionary *dict = msg.attributes;
+                [dict setValue:realConvid forKey:MSG_ATTR_REAL_CONVID];
+                [dict setValue:[NSString stringWithFormat:@"%d",msgType] forKey:MSG_ATTR_TYPE];
+                [dict setValue:[NSString stringWithFormat:@"%d",isConfirmed] forKey:@"isConfirmed"];
+                //            msg.text = realConvid;
+            }
+        }
+        @catch (NSException *exception)
+        {
+            DLog("%@", exception);
+        }
+        return msg;
+    }
+    else {
+        return nil;
+    }
+}
+
+- (int64_t)insertMsg:(AVIMTypedMessage *)msg {
+    
+    
+    __block int64_t rowId;
+    [_dbQueue inDatabase: ^(FMDatabase *db) {
+        NSData *data = [NSKeyedArchiver archivedDataWithRootObject:msg];
+        BOOL b = [db executeUpdate:@"INSERT INTO msgs (msg_id,convid,object,time) VALUES(?,?,?,?)"
+     withArgumentsInArray:@[msg.messageId, msg.conversationId, data, [self strOfInt64:msg.sendTimestamp]]];
+        if (b) {
+            NSLog(@"msg.messageId:%@",msg.messageId);
+            NSLog(@"msg.conversationId:%@",msg.conversationId);
+            NSLog(@"msg.sendTimestamp:%d",msg.sendTimestamp);
+        }
+        rowId = [db lastInsertRowId];
+    }];
+    return rowId;
+}
+
+
+- (int64_t)insertMsg:(AVIMTypedMessage *)msg AndType:(NSInteger)convType{
+    __block int64_t rowId;
+    [_dbQueue inDatabase: ^(FMDatabase *db) {
+        NSData *data = [NSKeyedArchiver archivedDataWithRootObject:msg];
+        if (convType == CDConvTypeSystem) {//系统对话唯一
+                FMResultSet *rs = [db executeQuery:@"SELECT * FROM rooms WHERE conv_type=?", @(CDConvTypeSystem)];
+                if ([rs next]) {
+                    NSDictionary *msgDict = msg.attributes;
+                    NSString *msgTypeStr = [msgDict objectForKey:MSG_ATTR_TYPE];
+                    int msgType = [msgTypeStr intValue];
+                    
+                    NSString *convid = [rs stringForColumn:FIELD_CONVID];//逻辑ID
+                    [db executeUpdate:@"INSERT INTO msgs (msg_id, convid, conv_type, msg_type, real_convid, object, time) VALUES(?,?,?,?,?,?,?)"
+                     withArgumentsInArray:@[msg.messageId, convid, @(convType), @(msgType), msg.conversationId, data, [self strOfInt64:msg.sendTimestamp]]];
+                } else {
+                    [NSException raise:@"IM" format:@"错误日志: 没找到系统对话记录 :("];
+                }
+                [rs close];
+        } else {
+            NSLog(@"time:%@",[self strOfInt64:msg.sendTimestamp]);
+            [db executeUpdate:@"INSERT INTO msgs (msg_id,convid,conv_type,object,time) VALUES(?,?,?,?,?)"
+             withArgumentsInArray:@[msg.messageId, msg.conversationId, @(convType), data, [self strOfInt64:msg.sendTimestamp]]];
+        }
+        rowId = [db lastInsertRowId];
+    }];
+//    NSLog(@"rowId: %d", rowId);
+    return rowId;
+}
+
+- (void)deleteMsgsByConvid:(NSString *)convid {
+    [_dbQueue inDatabase: ^(FMDatabase *db) {
+        [db executeUpdate:@"DELETE FROM msgs where convid=?" withArgumentsInArray:@[convid]];
+    }];
+}
+
+- (void)deleteMsgsByRealConvid:(NSString *)convid {
+    [_dbQueue inDatabase: ^(FMDatabase *db) {
+        [db executeUpdate:@"DELETE FROM msgs where real_convid=?" withArgumentsInArray:@[convid]];
+    }];
+}
+
+- (void)getAllMsgs{
+    
+    [_dbQueue inDatabase: ^(FMDatabase *db) {
+        FMResultSet *rs = [db executeQuery:@"select * from msgs"];
+        while ([rs next]) {
+            
+            NSString *realConvid = [rs stringForColumn:FIELD_REAL_CONVID];
+            NSInteger type = [rs intForColumn:FIELD_TYPE];
+            NSInteger msgType = [rs intForColumn:MSG_TYPE];
+            NSInteger isConfirmed = [rs intForColumn:FIELD_IS_CONFIRMED];
+            
+            realConvid = [realConvid stringByAppendingString:@"   "];
+            realConvid = [realConvid stringByAppendingString:[NSString stringWithFormat:@"%ld", (long)isConfirmed]];
+            
+            NSLog(@"realConvid:%@", realConvid);
+        }
+    }];
+    
+}
+
+#pragma mark - rooms table
+
+- (CDRoom *)getRoomByResultSet:(FMResultSet *)rs {
+    CDRoom *room = [[CDRoom alloc] init];
+    room.convid = [rs stringForColumn:FIELD_CONVID];
+    room.unreadCount = [rs intForColumn:FIELD_UNREAD_COUNT];
+    room.type = [rs intForColumn:FIELD_TYPE];
+    room.lastMsg = [self getMsgByResultSet:rs];
+    return room;
+}
+
+- (NSArray *)getRooms {
+    NSMutableArray *rooms = [NSMutableArray array];
+    [_dbQueue inDatabase: ^(FMDatabase *db) {
+        FMResultSet *rs = [db executeQuery:@"SELECT * FROM rooms LEFT JOIN (SELECT msgs.object,MAX(time) as time, msgs.convid as msg_convid, msgs.msg_type as msg_type, msgs.real_convid as real_convid, msgs.is_confirmed as is_confirmed FROM msgs GROUP BY msgs.convid) ON rooms.convid=msg_convid ORDER BY time DESC"];
+        while ([rs next]) {
+            [rooms addObject:[self getRoomByResultSet:rs]];
+        }
+        [rs close];
+    }];
+    return rooms;
+}
+
+- (NSInteger)countUnread {
+    __block NSInteger unreadCount = 0;
+    [_dbQueue inDatabase: ^(FMDatabase *db) {
+        FMResultSet *rs = [db executeQuery:@"SELECT SUM(rooms.unread_count) FROM rooms"];
+        if ([rs next]) {
+            unreadCount = [rs intForColumnIndex:0];
+        }
+    }];
+    return unreadCount;
+}
+
+- (void)insertRoomWithConvid:(NSString *)convid {
+    [_dbQueue inDatabase: ^(FMDatabase *db) {
+        FMResultSet *rs = [db executeQuery:@"SELECT * FROM rooms WHERE convid=?", convid];
+        if ([rs next] == NO) {
+            [db executeUpdate:@"INSERT INTO rooms (convid) VALUES(?) ", convid];
+        }
+        [rs close];
+    }];
+}
+
+//- (void)insertRoomWithConvid:(NSString *)convid AndType:(NSInteger)convType{
+//    [_dbQueue inDatabase: ^(FMDatabase *db) {
+//        FMResultSet *rs = [db executeQuery:@"SELECT * FROM rooms WHERE convid=?", convid];
+//        if ([rs next] == NO) {
+//            [db executeUpdate:@"INSERT INTO rooms (convid, type) VALUES(?,?) ", convid, convType];
+//        }
+//        [rs close];
+//    }];
+//}
+
+- (void)insertRoomWithConvid:(NSString *)convid AndType:(NSInteger)convType{
+        [_dbQueue inDatabase: ^(FMDatabase *db) {
+            FMResultSet *rs;
+            if (convType == CDConvTypeSystem) {
+                rs = [db executeQuery:@"SELECT * FROM rooms WHERE conv_type=?", @(CDConvTypeSystem)];
+                if ([rs next] == NO) {
+                    [db executeUpdate:@"INSERT INTO rooms (convid, conv_type) VALUES(?,?)" withArgumentsInArray:@[convid, @(CDConvTypeSystem)]];
+                }
+            } else {
+                rs = [db executeQuery:@"SELECT * FROM rooms WHERE convid=?", convid];
+                if ([rs next] == NO) {
+                    [db executeUpdate:@"INSERT INTO rooms (convid, conv_type) VALUES(?,?)" withArgumentsInArray:@[convid, @(convType)]];
+                }
+            }
+            [rs close];
+        }];
+}
+
+- (void)deleteRoomByConvid:(NSString *)convid {
+    [_dbQueue inDatabase: ^(FMDatabase *db) {
+        [db executeUpdate:@"DELETE FROM rooms WHERE convid=?" withArgumentsInArray:@[convid]];
+    }];
+}
+
+- (void)incrementUnreadWithConvid:(NSString *)convid {
+    [_dbQueue inDatabase: ^(FMDatabase *db) {
+        [db executeUpdate:@"UPDATE rooms SET unread_count=unread_count+1 WHERE convid=?" withArgumentsInArray:@[convid]];
+    }];
+}
+- (void)incrementUnreadWithConvid:(NSString *)convid AndType:(NSInteger)convType{
+    if (convType == CDConvTypeSystem) {
+        [_dbQueue inDatabase: ^(FMDatabase *db) {
+            [db executeUpdate:@"UPDATE rooms SET unread_count=unread_count+1 WHERE conv_type=?" withArgumentsInArray:@[@(CDConvTypeSystem)]];
+        }];
+    } else {
+        [_dbQueue inDatabase: ^(FMDatabase *db) {
+            [db executeUpdate:@"UPDATE rooms SET unread_count=unread_count+1 WHERE convid=?" withArgumentsInArray:@[convid]];
+        }];
+    }
+    
+}
+
+- (void)clearUnreadWithConvid:(NSString *)convid {
+    [_dbQueue inDatabase: ^(FMDatabase *db) {
+        [db executeUpdate:@"UPDATE rooms SET unread_count=0 WHERE convid=?" withArgumentsInArray:@[convid]];
+    }];
+}
+
+#pragma mark - int64
+
+- (int64_t)int64OfStr:(NSString *)str {
+    return [str longLongValue];
+}
+
+- (NSString *)strOfInt64:(int64_t)num {
+    return [[NSNumber numberWithLongLong:num] stringValue];
+}
+
+- (NSArray *)reverseArray:(NSArray *)originArray {
+    NSMutableArray *array = [NSMutableArray arrayWithCapacity:[originArray count]];
+    NSEnumerator *enumerator = [originArray reverseObjectEnumerator];
+    for (id element in enumerator) {
+        [array addObject:element];
+    }
+    return array;
+}
+
+@end

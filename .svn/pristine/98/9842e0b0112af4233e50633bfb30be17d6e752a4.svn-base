@@ -1,0 +1,18 @@
+//
+//  BodyBuildingGroupTableViewCell.h
+//  Burning
+//
+//  Created by wei_zhu on 15/7/29.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "SHBodyBuilding.h"
+
+@interface BodyBuildingGroupTableViewCell : UITableViewCell
+
+@property (weak, nonatomic) IBOutlet UIImageView *backImageView;
+
+@property(nonatomic,strong)SHBodyBuildingGroup *shBodyBuildingGroup;
+
+@end

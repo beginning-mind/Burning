@@ -1,0 +1,63 @@
+//
+//  PersonNearbyTableViewCell.m
+//  Burning
+//
+//  Created by Xiang Li on 15/7/29.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "PersonNearbyTableViewCell.h"
+#import <SDWebImage/UIImageView+WebCache.h>
+#import <AVUser.h>
+#import <AVFile.h>
+#import <AVGeoPoint.h>
+
+@implementation PersonNearbyTableViewCell
+
+- (void)awakeFromNib {
+    // Initialization code
+    self.selectionStyle=UITableViewCellSelectionStyleNone;
+}
+
+- (void)setSelected:(BOOL)selected animated:(BOOL)animated {
+    [super setSelected:selected animated:animated];
+
+}
+
+-(void)setAvUser:(AVUser *)avUser {
+    _avUser = avUser;
+    AVFile *avatarFile = [avUser objectForKey:@"avatar"];
+    [self.avatarImgView sd_setImageWithURL:[NSURL URLWithString:avatarFile.url] placeholderImage:[UIImage imageNamed:@"blank_avatar.jpg"]];
+    self.avatarImgView.layer.masksToBounds = YES;
+    self.avatarImgView.layer.cornerRadius =36/2.0;
+    
+    self.nicknameLabel.text = avUser.username;
+    NSString *signature =[avUser objectForKey:@"signature"];
+    if (signature==nil || [signature isEqualToString:@""]) {
+        self.signatureLabel.text = @"这家伙很懒，什么也没留下";
+    }
+    else{
+        self.signatureLabel.text =signature;
+    }
+    
+    
+    //计算距离
+    AVGeoPoint *currentUserPoint = [[AVUser currentUser] objectForKey:@"location"];
+    CLLocation *currentUserLoc = [[CLLocation alloc]initWithLatitude:currentUserPoint.latitude longitude:currentUserPoint.longitude];
+    
+    AVGeoPoint *targetPoint = [avUser objectForKey:@"location"];
+    CLLocation *targetLoc = [[CLLocation alloc]initWithLatitude:targetPoint.latitude longitude:targetPoint.longitude];
+    
+    CLLocationDistance meters= [currentUserLoc distanceFromLocation:targetLoc];
+    NSString *disTxt = @"";
+    if (meters > 1000) {
+        meters = meters/1000;
+        disTxt = [[NSString stringWithFormat:@"%.00f",meters] stringByAppendingString:@"千米"];
+    } else {
+        disTxt = [[NSString stringWithFormat:@"%.00f", meters] stringByAppendingString:@"米"];
+    }
+    
+    self.distanceLabel.text = disTxt;
+}
+
+@end

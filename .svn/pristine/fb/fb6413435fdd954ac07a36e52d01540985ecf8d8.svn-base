@@ -1,0 +1,37 @@
+//
+//  MCAlbumTableViewCell.h
+//  ClassNet
+//
+//  Created by lzw on 15/3/25.
+//  Copyright (c) 2015年 lzw. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "LCPublish.h"
+
+@protocol PubShowTableViewCellDelegate <NSObject>
+
+@optional
+
+-(void)didCommentButtonClick:(NSIndexPath*)indexPath commentUserIndex:(NSInteger)commentUserIndex;
+
+-(void)didLikeButtonClick:(UIButton*)button indexPath:(NSIndexPath*)indexPath;
+
+-(void)didAvatarImageViewClick:(UIGestureRecognizer*)gestureRecognizer indexPath:(NSIndexPath*)indexPath;
+
+-(void)didDigUserImageViewClick:(NSIndexPath*)indexPath digUserIndex:(NSInteger)digUserIndex;
+
+
+@end
+
+@interface PubShowTableViewCell : UITableViewCell
+
+@property (nonatomic,strong) LCPublish *currentPublish;
+
+@property (nonatomic,strong) NSIndexPath* indexPath;
+
+@property (nonatomic,strong) id<PubShowTableViewCellDelegate> publishTableViewCellDelegate;
+
++(CGFloat)calculateCellHeightWithSHPublish:(LCPublish*)lcpublish;
+
+@end

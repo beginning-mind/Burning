@@ -1,0 +1,27 @@
+//
+//  HotUserCollectionViewCell.h
+//  Burning
+//
+//  Created by wei_zhu on 15/6/8.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "LayoutConst.h"
+
+@interface HotUserCollectionViewCell : UICollectionViewCell
+
+@property (nonatomic,strong) UIImageView *avatarImageView;
+
+@property (nonatomic,strong) UILabel *usernameLabel;
+
+@property(nonatomic,strong)UIButton *attetionButton;
+
+@property (nonatomic,strong) UIImageView *hotPhotoLeft;
+
+@property (nonatomic,strong) UIImageView *hotPhotoMiddle;
+
+@property (nonatomic,strong) UIImageView *hotPhotoRight;
+
+
+@end

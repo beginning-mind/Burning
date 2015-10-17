@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="7702" systemVersion="14E46" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES">
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="7701"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="SearchingVC">
+            <connections>
+                <outlet property="personAndGroupTableView" destination="BV8-mD-lNA" id="epO-qf-urA"/>
+                <outlet property="searchingTextField" destination="wy6-ty-j0u" id="4wu-7I-Ewh"/>
+                <outlet property="view" destination="i5M-Pr-FkT" id="sfx-zR-JGt"/>
+            </connections>
+        </placeholder>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <view clearsContextBeforeDrawing="NO" contentMode="scaleToFill" id="i5M-Pr-FkT">
+            <rect key="frame" x="0.0" y="0.0" width="600" height="600"/>
+            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+            <subviews>
+                <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="DVf-B4-8Px" userLabel="SearchingAreaView">
+                    <rect key="frame" x="0.0" y="0.0" width="600" height="40"/>
+                    <subviews>
+                        <textField opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="群组/用户 号码" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="wy6-ty-j0u">
+                            <rect key="frame" x="8" y="5" width="516" height="30"/>
+                            <constraints>
+                                <constraint firstAttribute="height" constant="30" id="GMu-1o-3RB"/>
+                            </constraints>
+                            <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                            <textInputTraits key="textInputTraits" keyboardType="numberPad"/>
+                        </textField>
+                        <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="TNX-Ou-BQp">
+                            <rect key="frame" x="532" y="11" width="60" height="18"/>
+                            <constraints>
+                                <constraint firstAttribute="height" constant="18" id="3Ak-Sa-SeL"/>
+                                <constraint firstAttribute="width" priority="100" constant="60" id="f3n-et-eJZ"/>
+                            </constraints>
+                            <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                            <state key="normal" title="搜索">
+                                <color key="titleColor" red="0.11764705882352941" green="0.67450980392156867" blue="0.7803921568627451" alpha="1" colorSpace="calibratedRGB"/>
+                                <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
+                            </state>
+                            <connections>
+                                <action selector="searchingAction:" destination="-1" eventType="touchUpInside" id="b8f-iV-jbv"/>
+                            </connections>
+                        </button>
+                    </subviews>
+                    <color key="backgroundColor" cocoaTouchSystemColor="groupTableViewBackgroundColor"/>
+                    <constraints>
+                        <constraint firstAttribute="height" constant="40" id="Khg-Oa-cjf"/>
+                        <constraint firstItem="wy6-ty-j0u" firstAttribute="leading" secondItem="DVf-B4-8Px" secondAttribute="leading" constant="8" id="bzA-si-xYj"/>
+                        <constraint firstItem="TNX-Ou-BQp" firstAttribute="top" secondItem="DVf-B4-8Px" secondAttribute="top" constant="11" id="eeu-oZ-SRY"/>
+                        <constraint firstAttribute="trailing" secondItem="TNX-Ou-BQp" secondAttribute="trailing" constant="8" id="hS3-Zl-Jmc"/>
+                        <constraint firstItem="wy6-ty-j0u" firstAttribute="top" secondItem="DVf-B4-8Px" secondAttribute="top" constant="5" id="mwq-0J-cJB"/>
+                        <constraint firstItem="TNX-Ou-BQp" firstAttribute="leading" secondItem="wy6-ty-j0u" secondAttribute="trailing" constant="8" id="oho-x0-6tz"/>
+                    </constraints>
+                </view>
+                <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" style="plain" separatorStyle="default" rowHeight="44" sectionHeaderHeight="22" sectionFooterHeight="22" translatesAutoresizingMaskIntoConstraints="NO" id="BV8-mD-lNA">
+                    <rect key="frame" x="0.0" y="40" width="600" height="560"/>
+                    <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                </tableView>
+            </subviews>
+            <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
+            <constraints>
+                <constraint firstItem="BV8-mD-lNA" firstAttribute="top" secondItem="DVf-B4-8Px" secondAttribute="bottom" id="6Nt-3e-Wb5"/>
+                <constraint firstItem="DVf-B4-8Px" firstAttribute="top" secondItem="i5M-Pr-FkT" secondAttribute="top" id="MrO-6E-Ihc"/>
+                <constraint firstAttribute="bottom" secondItem="BV8-mD-lNA" secondAttribute="bottom" id="U7O-Ks-agp"/>
+                <constraint firstItem="DVf-B4-8Px" firstAttribute="leading" secondItem="i5M-Pr-FkT" secondAttribute="leading" id="erQ-1R-TTx"/>
+                <constraint firstAttribute="trailing" secondItem="DVf-B4-8Px" secondAttribute="trailing" id="f1t-hl-cqm"/>
+                <constraint firstAttribute="trailing" secondItem="BV8-mD-lNA" secondAttribute="trailing" id="no3-yT-B9u"/>
+                <constraint firstItem="BV8-mD-lNA" firstAttribute="leading" secondItem="i5M-Pr-FkT" secondAttribute="leading" id="oB4-12-2sF"/>
+            </constraints>
+            <point key="canvasLocation" x="463" y="500"/>
+        </view>
+    </objects>
+</document>

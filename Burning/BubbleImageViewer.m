@@ -1,0 +1,127 @@
+//
+//  BubbleImageViewer.m
+//  Burning
+//
+//  Created by wei_zhu on 15/8/16.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "BubbleImageViewer.h"
+#import <SDWebImage/UIImageView+WebCache.h>
+
+@interface BubbleImageViewer()
+
+@property (nonatomic, strong) UIScrollView *scrollView;
+@property(nonatomic,strong)UIImageView *currentView;
+
+@end
+
+@implementation BubbleImageViewer
+
+- (id)init {
+    self = [self initWithFrame:CGRectZero];
+    if (self) {
+        [self _setup];
+    }
+    return self;
+}
+
+- (void)_setup {
+    self.backgroundColor = [UIColor colorWithWhite:0.1 alpha:1];
+    self.backgroundScale = 0.95;
+}
+
+- (id)initWithFrame:(CGRect)frame {
+    self = [super initWithFrame:[[UIScreen mainScreen] bounds]];
+    if (self) {
+        [self _setup];
+    }
+    return self;
+}
+
+
+- (void)showWithImageViews:(NSString*)imageUrl{
+    [self.scrollView.subviews makeObjectsPerformSelector:@selector(removeFromSuperview)];
+    
+    if(_scrollView == nil) {
+        _scrollView = [[UIScrollView alloc] initWithFrame:self.bounds];
+        _scrollView.pagingEnabled = YES;
+        _scrollView.showsHorizontalScrollIndicator = NO;
+        _scrollView.showsVerticalScrollIndicator   = NO;
+        _scrollView.backgroundColor = [self.backgroundColor colorWithAlphaComponent:1];
+        _scrollView.alpha = 0;
+    }
+    UIActivityIndicatorView *activityIndicator = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhite];
+    
+    UIWindow *window = [[[UIApplication sharedApplication] delegate] window];
+    const CGFloat fullW = window.frame.size.width;
+    const CGFloat fullH = window.frame.size.height;
+    activityIndicator.center =CGPointMake(fullW/2.0, fullH/2.0);
+    [self.scrollView addSubview:activityIndicator];
+    [activityIndicator startAnimating];
+    [activityIndicator setHidesWhenStopped:YES];
+
+    NSData *data = [NSData dataWithContentsOfURL:[NSURL URLWithString:imageUrl]];
+    UIImage *image = [[UIImage alloc]initWithData:data];
+    CGSize size = image.size;
+    CGFloat ratio = MIN(fullW / size.width, fullH / size.height);
+    CGFloat W = ratio * size.width;
+    CGFloat H = ratio * size.height;
+    
+    self.currentView = [[UIImageView alloc]initWithFrame:CGRectMake(0, 0, 1, 1)];
+    self.currentView.center = CGPointMake(fullW/2.0, fullH/2.0);
+
+    self.currentView.image = image;
+    [_scrollView addSubview:self.currentView];
+    
+    [self addSubview:_scrollView];
+    [window addSubview:self];
+    CGRect bounds = self.currentView.frame;
+    
+    [UIView animateWithDuration:0.3
+                     animations:^{
+                         _scrollView.alpha = 1;
+                         self.currentView.transform = CGAffineTransformMakeScale(W, H);
+                     }
+                     completion:^(BOOL finished) {
+                         _scrollView.contentSize = CGSizeMake( fullW, 0);
+                         _scrollView.contentOffset = CGPointMake(0, 0);
+                         
+                         UITapGestureRecognizer *gesture = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tappedScrollView:)];
+                         [_scrollView addGestureRecognizer:gesture];
+                         [activityIndicator stopAnimating];
+                     }
+     ];
+
+}
+
+#pragma mark- Properties
+
+- (void)setBackgroundColor:(UIColor *)backgroundColor {
+    [super setBackgroundColor:[backgroundColor colorWithAlphaComponent:0]];
+}
+
+#pragma mark- View management
+- (void)dismissWithAnimate {
+//    UIWindow *window = [[[UIApplication sharedApplication] delegate] window];
+//    const CGFloat fullW = window.frame.size.width;
+//    const CGFloat fullH = window.frame.size.height;
+    [UIView animateWithDuration:0.3
+                     animations:^{
+//                         self.currentView.transform =CGAffineTransformMakeScale(1, 1);
+//                         self.currentView.center = CGPointMake(fullW/2.0, fullH/2.0);
+                         [self removeFromSuperview];
+
+                     }
+                     completion:^(BOOL finished) {
+                     }
+     ];
+}
+
+#pragma mark- Gesture events
+
+- (void)tappedScrollView:(UITapGestureRecognizer *)sender {
+    [self dismissWithAnimate];
+}
+
+@end

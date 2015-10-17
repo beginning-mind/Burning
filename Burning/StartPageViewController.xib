@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="8191" systemVersion="15A284" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES">
+    <dependencies>
+        <deployment identifier="iOS"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="8154"/>
+    </dependencies>
+    <objects>
+        <placeholder placeholderIdentifier="IBFilesOwner" id="-1" userLabel="File's Owner" customClass="StartPageViewController">
+            <connections>
+                <outlet property="picFatherView" destination="ZXe-o9-ej0" id="u8b-Jr-pIq"/>
+                <outlet property="view" destination="i5M-Pr-FkT" id="sfx-zR-JGt"/>
+            </connections>
+        </placeholder>
+        <placeholder placeholderIdentifier="IBFirstResponder" id="-2" customClass="UIResponder"/>
+        <view autoresizesSubviews="NO" opaque="NO" clearsContextBeforeDrawing="NO" contentMode="scaleToFill" id="i5M-Pr-FkT">
+            <rect key="frame" x="0.0" y="0.0" width="600" height="600"/>
+            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+            <subviews>
+                <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="ZXe-o9-ej0" userLabel="picFatherView">
+                    <rect key="frame" x="0.0" y="0.0" width="600" height="600"/>
+                    <animations/>
+                </view>
+                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Xcy-pa-jjG">
+                    <rect key="frame" x="20" y="390" width="560" height="40"/>
+                    <animations/>
+                    <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                    <constraints>
+                        <constraint firstAttribute="height" constant="40" id="oua-ur-anL"/>
+                    </constraints>
+                    <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                    <state key="normal" title="登录">
+                        <color key="titleColor" white="0.0" alpha="1" colorSpace="calibratedWhite"/>
+                        <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
+                    </state>
+                    <connections>
+                        <action selector="intoLoginAction:" destination="-1" eventType="touchUpInside" id="Lw2-H3-DUm"/>
+                    </connections>
+                </button>
+                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="KOL-en-Aio">
+                    <rect key="frame" x="20" y="460" width="560" height="40"/>
+                    <animations/>
+                    <color key="backgroundColor" red="0.11764705882352941" green="0.7803921568627451" blue="0.7803921568627451" alpha="1" colorSpace="calibratedRGB"/>
+                    <constraints>
+                        <constraint firstAttribute="height" constant="40" id="Vcm-ua-o7f"/>
+                    </constraints>
+                    <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                    <state key="normal" title="注册">
+                        <color key="titleColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                        <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
+                    </state>
+                    <connections>
+                        <action selector="intoRegisterAction:" destination="-1" eventType="touchUpInside" id="HhW-A2-0OI"/>
+                    </connections>
+                </button>
+            </subviews>
+            <animations/>
+            <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
+            <constraints>
+                <constraint firstItem="ZXe-o9-ej0" firstAttribute="top" secondItem="i5M-Pr-FkT" secondAttribute="top" id="184-P6-7ST"/>
+                <constraint firstAttribute="trailing" secondItem="ZXe-o9-ej0" secondAttribute="trailing" id="3ls-8p-8Uc"/>
+                <constraint firstAttribute="trailing" secondItem="KOL-en-Aio" secondAttribute="trailing" constant="20" id="E9Z-on-bRX"/>
+                <constraint firstAttribute="trailing" secondItem="Xcy-pa-jjG" secondAttribute="trailing" constant="20" id="Jn5-sG-vzm"/>
+                <constraint firstItem="KOL-en-Aio" firstAttribute="top" secondItem="Xcy-pa-jjG" secondAttribute="bottom" constant="30" id="KQ9-vs-dtd"/>
+                <constraint firstItem="Xcy-pa-jjG" firstAttribute="leading" secondItem="i5M-Pr-FkT" secondAttribute="leading" constant="20" id="Mg0-gY-I7t"/>
+                <constraint firstAttribute="bottom" secondItem="KOL-en-Aio" secondAttribute="bottom" constant="100" id="V2e-83-Hg3"/>
+                <constraint firstAttribute="bottom" secondItem="ZXe-o9-ej0" secondAttribute="bottom" id="WJd-bQ-jDl"/>
+                <constraint firstItem="ZXe-o9-ej0" firstAttribute="leading" secondItem="i5M-Pr-FkT" secondAttribute="leading" id="bDY-e7-Z7r"/>
+                <constraint firstItem="KOL-en-Aio" firstAttribute="leading" secondItem="i5M-Pr-FkT" secondAttribute="leading" constant="20" id="itB-WB-nlq"/>
+            </constraints>
+            <point key="canvasLocation" x="684" y="188"/>
+        </view>
+    </objects>
+</document>

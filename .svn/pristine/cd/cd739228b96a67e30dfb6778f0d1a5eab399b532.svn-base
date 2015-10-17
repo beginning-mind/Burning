@@ -1,0 +1,40 @@
+//
+//  GroupTableViewCell.m
+//  Burning
+//
+//  Created by Xiang Li on 15/7/17.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "GroupTableViewCell.h"
+#import <SDWebImage/UIImageView+WebCache.h>
+
+@implementation GroupTableViewCell
+
+- (void)awakeFromNib {
+    // Initialization code
+    self.selectionStyle=UITableViewCellSelectionStyleNone;
+}
+
+- (void)setSelected:(BOOL)selected animated:(BOOL)animated {
+    [super setSelected:selected animated:animated];
+
+}
+
+-(void)setShowGroup:(SHGroup *)showGroup{
+    _showGroup = showGroup;
+    [self.groupAvatar sd_setImageWithURL:[NSURL URLWithString:showGroup.avatarUrl] placeholderImage:[UIImage imageNamed:@"blank_avatar.jpg"]];
+    self.groupAvatar.layer.masksToBounds = YES;
+    self.groupAvatar.layer.cornerRadius =36/2.0;
+    
+    self.groupName.text = showGroup.groupName;
+    self.groupSlogan.text = showGroup.groupSlogan;
+
+    if (showGroup.distance) {
+        self.groupDistance.text = showGroup.distance;
+    }
+    
+    self.groupMemberCount.text = showGroup.groupCount;
+}
+
+@end

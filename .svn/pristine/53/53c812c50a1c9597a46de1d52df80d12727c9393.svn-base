@@ -1,0 +1,141 @@
+//
+//  BodyBuildingMainViewController.m
+//  Burning
+//
+//  Created by 李想 on 15/5/22.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "BodyBuildingMainViewController.h"
+#import "BurningNavControl.h"
+#import "BodyBuildingGroupTableViewCell.h"
+#import "LCBodyBuilding.h"
+#import "SHBodyBuilding.h"
+#import <MJRefresh.h>
+#import "ModelTransfer.h"
+#import "BodyBuildingViewController.h"
+
+@interface BodyBuildingMainViewController ()
+
+@property(nonatomic,strong)NSMutableArray *shBodyBuildingGroups;
+
+@property(nonatomic,strong)NSMutableArray *lcBodyBuildings;
+
+@end
+
+@implementation BodyBuildingMainViewController
+
+- (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil{
+    self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
+    if (self) {
+        // Custom initialization
+        self.showTabbar = YES;
+        [self setTitle:@"课程"];
+    }
+    return self;
+}
+
+- (void)viewDidLoad{
+    [super viewDidLoad];
+    // Do any additional setup after loading the view from its nib.
+    self.tableView.dataSource = self;
+    self.tableView.delegate = self;
+    
+    //分割线从最左边画
+//    if ([self.tableView respondsToSelector:@selector(setSeparatorInset:)]) {
+//        [self.tableView setSeparatorInset:UIEdgeInsetsZero];
+//    }
+//    if ([self.tableView respondsToSelector:@selector(setLayoutMargins:)]) {
+//        [self.tableView setLayoutMargins:UIEdgeInsetsZero];
+//    }
+    
+    self.tableView.separatorColor =[UIColor clearColor];
+    
+    //空余cell没有分割线
+    UIView *view = [UIView new];
+    view.backgroundColor = [UIColor clearColor];
+    [self.tableView setTableFooterView:view];
+    
+    //headRefresh
+    [self.tableView addLegendHeaderWithRefreshingTarget:self refreshingAction:@selector(loadData)];
+    //__weak typeof(self) weakSelf = self;
+    [self.tableView.header setTitle:@"加载中..." forState:MJRefreshHeaderStateRefreshing];
+    [self.tableView.header setUpdatedTimeHidden:YES];
+    [self.tableView.header beginRefreshing];
+}
+
+- (void)didReceiveMemoryWarning{
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+-(void)loadData{
+    [self.lcDataHelper getBodyBuildingBlock: ^(NSArray *objects, NSError *error) {
+        self.lcBodyBuildings = [objects mutableCopy];
+        NSMutableArray *curBodyBuildingGroups = [NSMutableArray array];
+        NSMutableArray *groupArry =[NSMutableArray array];
+        for (LCBodyBuilding *lcBodyBuilding in objects) {
+            NSString *curGroup = lcBodyBuilding.group;
+            if (![groupArry containsObject:curGroup]) {
+                [curBodyBuildingGroups addObject:[ModelTransfer lcBodyBuildingToSHBodyBuildingGroup:lcBodyBuilding]];
+                [groupArry addObject:curGroup];
+            }
+        }
+        self.shBodyBuildingGroups = curBodyBuildingGroups;
+        [self.tableView reloadData];
+        [self.tableView.header endRefreshing];
+    }];
+}
+
+#pragma mark tableViewDelegate
+-(NSInteger)numberOfSectionsInTableView:(UITableView *)tableView{
+    return 1;
+}
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section{
+    return self.shBodyBuildingGroups.count;
+}
+
+-(CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath{
+    return 105;
+}
+
+-(UITableViewCell*)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath{
+    
+    BodyBuildingGroupTableViewCell *bodyBuildingCell= [tableView dequeueReusableCellWithIdentifier:@"bodyGroupCell"];
+    if(bodyBuildingCell==nil){
+        NSArray *array = [[NSBundle mainBundle] loadNibNamed:@"BodyBuildingGroupTableViewCell" owner:self options:nil];
+        bodyBuildingCell = [array objectAtIndex:0];
+        bodyBuildingCell.selectionStyle = UITableViewCellSelectionStyleNone;
+    }
+    bodyBuildingCell.shBodyBuildingGroup=self.shBodyBuildingGroups[indexPath.row];
+    return bodyBuildingCell;
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath{
+    SHBodyBuildingGroup *curShBodyBuilding = self.shBodyBuildingGroups[indexPath.row];
+    NSString *group = curShBodyBuilding.group;
+    NSMutableArray *shBodyBuildings = [NSMutableArray array];
+    for (LCBodyBuilding *curlcBodyBuilding in self.lcBodyBuildings) {
+        NSString *curGroup = curlcBodyBuilding.group;
+        if ([group isEqual:curGroup]) {
+            [shBodyBuildings addObject:[ModelTransfer lcBodyBuildingToSHBodyBuilding:curlcBodyBuilding]];
+        }
+    }
+    BodyBuildingViewController *bodyBuildingViewController = [[BodyBuildingViewController alloc]init];
+    bodyBuildingViewController.shBodyBuildings = shBodyBuildings;
+    [self.navigationController pushViewController:bodyBuildingViewController animated:YES];
+    
+}
+
+- (void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    if ([cell respondsToSelector:@selector(setSeparatorInset:)]) {
+        [cell setSeparatorInset:UIEdgeInsetsZero];
+    }
+    if ([cell respondsToSelector:@selector(setLayoutMargins:)]) {
+        [cell setLayoutMargins:UIEdgeInsetsZero];
+    }
+}
+
+@end

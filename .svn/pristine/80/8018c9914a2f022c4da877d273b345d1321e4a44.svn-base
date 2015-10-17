@@ -1,0 +1,193 @@
+//
+//  PersonNearbyTableViewCell.m
+//  Burning
+//
+//  Created by Xiang Li on 15/7/29.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "PersonNearbyTableViewCell.h"
+#import <SDWebImage/UIImageView+WebCache.h>
+#import <AVUser.h>
+#import <AVFile.h>
+#import <AVGeoPoint.h>
+#import "LayoutConst.h"
+#import "SVGloble.h"
+
+@interface PersonNearbyTableViewCell()
+
+@property (nonatomic,strong)UIImageView *avatarImageView;
+
+@property (nonatomic,strong)UILabel *usernameLabel;
+
+@property (nonatomic,strong)UILabel *sigNatureLabel;
+
+@property(nonatomic,strong)UILabel *distanceLabel;
+
+@property(nonatomic,strong)UIImageView *sexImageView;
+
+@end
+
+@implementation PersonNearbyTableViewCell
+
+- (void)awakeFromNib {
+    // Initialization code
+    self.selectionStyle=UITableViewCellSelectionStyleNone;
+}
+
+- (void)setSelected:(BOOL)selected animated:(BOOL)animated {
+    [super setSelected:selected animated:animated];
+
+}
+
+-(void)setAvUser:(AVUser *)avUser {
+    _avUser = avUser;
+    AVFile *avatarFile = [avUser objectForKey:@"avatar"];
+    [self.avatarImageView sd_setImageWithURL:[NSURL URLWithString:avatarFile.url] placeholderImage:[UIImage imageNamed:@"blank_avatar.jpg"]];
+//    self.avatarImgView.layer.masksToBounds = YES;
+//    self.avatarImgView.layer.cornerRadius =36/2.0;
+    
+    self.usernameLabel.text = avUser.username;
+    NSString *signature =[avUser objectForKey:@"signature"];
+    if (signature==nil || [signature isEqualToString:@""]) {
+        self.sigNatureLabel.text = @"这家伙很懒，什么也没留下";
+    }
+    else{
+        self.sigNatureLabel.text =signature;
+    }
+    
+    
+    //计算距离
+    AVGeoPoint *currentUserPoint = [[AVUser currentUser] objectForKey:@"location"];
+    CLLocation *currentUserLoc = [[CLLocation alloc]initWithLatitude:currentUserPoint.latitude longitude:currentUserPoint.longitude];
+    
+    AVGeoPoint *targetPoint = [avUser objectForKey:@"location"];
+    CLLocation *targetLoc = [[CLLocation alloc]initWithLatitude:targetPoint.latitude longitude:targetPoint.longitude];
+    
+    CLLocationDistance meters= [currentUserLoc distanceFromLocation:targetLoc];
+    NSString *disTxt = @"";
+    if (meters > 1000) {
+        meters = meters/1000;
+        disTxt = [[NSString stringWithFormat:@"%.00f",meters] stringByAppendingString:@"km"];
+    } else {
+        disTxt = [[NSString stringWithFormat:@"%.00f", meters] stringByAppendingString:@"m"];
+    }
+    
+    self.distanceLabel.text = disTxt;
+}
+
++(NSFont*)contentFont{
+    return  [UIFont systemFontOfSize:kPubShowFontSize];
+}
+
++(CGFloat)contentWidth{
+    return CGRectGetWidth([[UIScreen mainScreen] bounds])-2*kCommonSpace-kCommonAvatarSize-kSmallTextAvatarHorizalSpace;
+}
+
++(CGFloat)getLabelHeightWithText:(NSString*)text maxWidth:(CGFloat)maxWidth font:(NSFont*)font{
+    return [text boundingRectWithSize:CGSizeMake(maxWidth,CGFLOAT_MAX) options:NSStringDrawingUsesLineFragmentOrigin attributes:@{NSFontAttributeName:font} context:nil].size.height;
+}
+
++(CGFloat)getContentLabelHeightWithText:(NSString*)text{
+    if(text==nil){
+        return 0;
+    }
+    return [self getLabelHeightWithText:text maxWidth:[[self class] contentWidth] font:[self contentFont]];
+}
+
++(CGFloat)calculateCellHeightWithUser:(AVUser*)user{
+    if(user==nil){
+        return 0;
+    }
+    CGFloat richTextHeight=kSmallSpace;
+    richTextHeight+=kLargeLabelHeight;
+    richTextHeight+=kUserListLabeSpading;
+    NSString *signature = [user objectForKey:@"signature"];
+    if (signature==nil || [signature isEqualToString:@""]) {
+        signature = @"这是一个很有个性的群";
+    }
+    
+    richTextHeight+=[[self class] getContentLabelHeightWithText:signature];
+    richTextHeight+=kSmallSpace;
+    
+    CGFloat avatarSize = 2*kSmallSpace+kCommonAvatarSize;
+    return richTextHeight>avatarSize? richTextHeight :avatarSize;
+}
+
+#pragma mark UI
+-(UIImageView*)avatarImageView{
+    if(_avatarImageView==nil){
+        _avatarImageView=[[UIImageView alloc] initWithFrame:CGRectMake(kPubShowAvatarSpacing,kSmallSpace, kCommonAvatarSize, kCommonAvatarSize)];
+        //        _avatarImageView.layer.masksToBounds =YES;
+        //        _avatarImageView.layer.cornerRadius =kPubShowAvatarImageSize/2.0;
+    }
+    return _avatarImageView;
+}
+
+-(UILabel*)usernameLabel{
+    if(_usernameLabel==nil){
+        _usernameLabel=[[UILabel alloc] initWithFrame:CGRectMake(CGRectGetMaxX(_avatarImageView.frame)+kSmallTextAvatarHorizalSpace, kSmallSpace,CGRectGetMinX(self.distanceLabel.frame)-CGRectGetMaxX(self.avatarImageView.frame)-kSmallTextAvatarHorizalSpace , kLargeLabelHeight)];
+        _usernameLabel.textColor=[UIColor blackColor];
+        _usernameLabel.font = [UIFont systemFontOfSize:kLargeFontSize];
+//        _usernameLabel.backgroundColor = [UIColor greenColor];
+    }
+    return _usernameLabel;
+}
+
+-(UILabel*)sigNatureLabel{
+    
+    if(!_sigNatureLabel){
+        _sigNatureLabel=[[UILabel alloc] initWithFrame:CGRectMake(CGRectGetMinX(_usernameLabel.frame), CGRectGetMaxY(_usernameLabel.frame)+kUserListLabeSpading, [[self class]contentWidth], 10)];
+        _sigNatureLabel.font=[UIFont systemFontOfSize:kCommonFontSize];
+        _sigNatureLabel.textColor=RGB(133, 133, 133);
+        _sigNatureLabel.numberOfLines=0;
+//        _sigNatureLabel.backgroundColor = [UIColor greenColor];
+    }
+    return _sigNatureLabel;
+}
+
+-(UILabel*)distanceLabel{
+    if (_distanceLabel ==nil) {
+        _distanceLabel=[[UILabel alloc] initWithFrame:CGRectMake([SVGloble shareInstance].globleWidth-kPubShowAvatarSpacing-46, kSmallSpace, 46, 16)];
+        _distanceLabel.font=[UIFont systemFontOfSize:kSmallFontSize];
+        _distanceLabel.textAlignment = NSTextAlignmentRight;
+        _distanceLabel.textColor=RGB(133, 133, 133);
+//        _distanceLabel.backgroundColor = [UIColor redColor];
+    }
+    
+    return _distanceLabel;
+}
+
+-(void)setup{
+    self.selectionStyle=UITableViewCellSelectionStyleNone;
+    [self addSubview:self.avatarImageView];
+    [self addSubview:self.usernameLabel];
+    [self addSubview:self.sigNatureLabel];
+    [self addSubview:self.distanceLabel];
+}
+
+-(id)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier{
+    self=[super initWithStyle:style reuseIdentifier:reuseIdentifier];
+    if(self){
+        [self setup];
+    }
+    return self;
+}
+
+-(void)layoutSubviews{
+    [super layoutSubviews];
+    CGRect contentFrame=_sigNatureLabel.frame;
+    contentFrame.size.height=[[self class] getContentLabelHeightWithText:self.sigNatureLabel.text];
+    _sigNatureLabel.frame=contentFrame;
+    
+    
+    CGFloat maxY = CGRectGetMaxY(_sigNatureLabel.frame);
+    maxY+=kSmallSpace;
+    CGFloat avatarSize = 2*kSmallSpace+kCommonAvatarSize;
+    CGRect frame=self.frame;
+    frame.size.height=maxY>avatarSize?maxY:avatarSize;
+    self.frame=frame;
+}
+
+
+@end

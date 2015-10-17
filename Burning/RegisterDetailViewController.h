@@ -1,0 +1,30 @@
+//
+//  RegisterDetailViewController.h
+//  Burning
+//
+//  Created by Xiang Li on 15/6/7.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "BaseViewController.h"
+#import "RegisterViewController.h"
+
+
+@interface RegisterDetailViewController : BaseViewController
+
+
+@property (weak, nonatomic) IBOutlet UITextField *sms4Register;
+@property (weak, nonatomic) IBOutlet UITextField *nickname;
+@property (weak, nonatomic) IBOutlet UITextField *password;
+@property (weak, nonatomic) IBOutlet UITextField *password4Check;
+@property (weak, nonatomic) IBOutlet UIButton *reFetchButton;
+
+@property(nonatomic,strong)NSString *phoneNum;
+- (IBAction)checkRepeat:(id)sender;
+
+- (IBAction)registerUser:(id)sender;
+//- (IBAction)validateSMS:(id)sender;
+- (IBAction)reFetchAction:(id)sender;
+
+
+@end

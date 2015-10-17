@@ -1,0 +1,109 @@
+//
+//  HotUserCollectionViewCell.m
+//  Burning
+//
+//  Created by wei_zhu on 15/6/8.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "HotUserCollectionViewCell.h"
+#import "LayoutConst.h"
+#import <SDWebImage/UIImageView+WebCache.h>
+#import "SVGloble.h"
+
+@implementation HotUserCollectionViewCell
+
++(CGFloat)contentWidth{
+    return CGRectGetWidth([[UIScreen mainScreen] bounds])-3*kHotAvatarSpacing-kPubShowAvatarImageSize;
+}
+
+-(UIImageView*)avatarImageView{
+    if(_avatarImageView==nil){
+        _avatarImageView=[[UIImageView alloc] initWithFrame:CGRectMake(kHotAvatarSpacing,kHotAvatarSpacing, kPubShowAvatarImageSize, kPubShowAvatarImageSize)];
+    }
+    return _avatarImageView;
+}
+
+-(UILabel*)usernameLabel{
+    if(_usernameLabel==nil){
+        _usernameLabel=[[UILabel alloc] initWithFrame:CGRectMake(CGRectGetMaxX(_avatarImageView.frame)+kHotAvatarSpacing, kHotAvatarSpacing,[[self class] contentWidth] , kHotUsernameHeight)];
+        _usernameLabel.backgroundColor=[UIColor clearColor];
+        _usernameLabel.textColor=RGB(52, 164, 254);
+    }
+    return _usernameLabel;
+}
+
+-(UIButton*)attetionButton{
+    if(_attetionButton==nil){
+        _attetionButton=[[UIButton alloc] initWithFrame:CGRectZero];
+    }
+    return _attetionButton;
+}
+
+-(UIImageView*)hotPhotoLeft{
+    if (_hotPhotoLeft==nil) {
+        _hotPhotoLeft = [[UIImageView alloc]initWithFrame:CGRectZero];
+    }
+    return _hotPhotoLeft;
+}
+
+-(UIImageView*)hotPhotoMiddle{
+    if (_hotPhotoMiddle==nil) {
+        _hotPhotoMiddle = [[UIImageView alloc]initWithFrame:CGRectZero];
+    }
+    return _hotPhotoMiddle;
+}
+
+-(UIImageView*)hotPhotoRight{
+    if (_hotPhotoRight==nil) {
+        _hotPhotoRight = [[UIImageView alloc]initWithFrame:CGRectZero];
+    }
+    return _hotPhotoRight;
+}
+
+//-(void)setPublish:(SHPublish *)publish{
+//    _publish=publish;
+//    self.usernameLabel.text=_publish.username;
+//    [self.avatarImageView sd_setImageWithURL:[NSURL URLWithString:publish.avatarUrl]];
+//    //code set HotImag
+//    
+//    [self setNeedsLayout];
+//}
+
+-(void)addCustomViews{
+    [self addSubview:self.avatarImageView];
+    [self addSubview:self.usernameLabel];
+    [self addSubview:self.attetionButton];
+    [self addSubview:self.hotPhotoLeft];
+    [self addSubview:self.hotPhotoMiddle];
+    [self addSubview:self.hotPhotoRight];
+}
+
+- (instancetype)initWithFrame:(CGRect)frame
+{
+    self = [super initWithFrame:frame];
+    if (self) {
+        [self addCustomViews];
+    }
+    return self;
+}
+
+-(void)layoutSubviews{
+    [super layoutSubviews];
+    
+    CGFloat hotPhotoWidth = ([SVGloble shareInstance].globleWidth-30.0-2.0)/3.0;
+    _hotPhotoLeft.frame = CGRectMake(15.0, 75.0, hotPhotoWidth, kHotPhotHeight);
+    _hotPhotoMiddle.frame = CGRectMake(16.0+hotPhotoWidth, 75.0, hotPhotoWidth, kHotPhotHeight);
+    _hotPhotoRight.frame = CGRectMake(17.0+hotPhotoWidth*2.0, 75.0, hotPhotoWidth, kHotPhotHeight);
+    
+    _attetionButton.frame= CGRectMake([SVGloble shareInstance].globleWidth-45.0, kHotAvatarSpacing, kHotDigUserButtonWidth, kHotDigUserButtonHeight);
+    
+    CGFloat maxY;
+    
+    maxY = CGRectGetMaxY(_hotPhotoLeft.frame);
+    CGRect frame=self.frame;
+    frame.size.height=maxY+kHotAvatarSpacing;
+    self.frame=frame;
+}
+
+@end

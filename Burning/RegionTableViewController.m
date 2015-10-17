@@ -1,0 +1,204 @@
+//
+//  RegionTableViewController.m
+//  Burning
+//
+//  Created by Xiang Li on 15/8/6.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "RegionTableViewController.h"
+#import <AFHTTPRequestOperationManager.h>
+#import "CDMacros.h"
+#import <MJRefresh.h>
+#import "LayoutConst.h"
+
+
+#define LOADCOUNT 20
+@interface RegionTableViewController ()
+
+typedef enum {
+    All = 0,
+    Community,
+    CBD
+} RegionTypeEnum;
+@property (nonatomic) int regionType;
+@property(nonatomic,strong) CLLocationManager *locationManager;
+@property(nonatomic,strong) NSMutableArray *regionArr;
+@property(nonatomic,strong) NSString *locationStr;
+@property (nonatomic,assign) NSInteger curLoadCount;
+
+@end
+
+@implementation RegionTableViewController
+
+- (instancetype)initWithType:(int)type {
+    if ((self = [super init])) {
+        switch (type) {
+            case All:
+                self.title = @"商圈";
+                break;
+            case Community:
+                self.title = @"小区";
+                break;
+            case CBD:
+                self.title = @"学校";
+                break;
+            default:
+                break;
+        }
+    }
+    return self;
+}
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    self.view = self.tableView;
+    [self setLocation];
+    self.automaticallyAdjustsScrollViewInsets = NO;
+    //分割线从最左边画
+    if ([self.tableView respondsToSelector:@selector(setSeparatorInset:)]) {
+        [self.tableView setSeparatorInset:UIEdgeInsetsZero];
+    }
+    if ([self.tableView respondsToSelector:@selector(setLayoutMargins:)]) {
+        [self.tableView setLayoutMargins:UIEdgeInsetsZero];
+    }
+    self.tableView.separatorColor = [UIColor colorWithRed:0.89 green:0.89 blue:0.90 alpha:1.0];
+    //空余cell没有分割线
+    UIView *view = [UIView new];
+    view.backgroundColor = [UIColor clearColor];
+    [self.tableView setTableFooterView:view];
+    
+    //headRefresh
+    [self.tableView addLegendHeaderWithRefreshingTarget:self refreshingAction:@selector(loadPlaceData)];
+    [self.tableView.header setTitle:@"加载中..." forState:MJRefreshHeaderStateRefreshing];
+    [self.tableView.header setTitle:@"下拉刷新" forState:MJRefreshHeaderStateIdle];
+    [self.tableView.header setTitle:@"松开刷新数据" forState:MJRefreshHeaderStatePulling];
+    self.tableView.header.font = [UIFont systemFontOfSize:kCommonFontSize];
+    self.tableView.header.textColor = RGB(133, 133, 133);
+
+    [self.tableView.header setUpdatedTimeHidden:YES];
+    [self.tableView.header beginRefreshing];
+    //footRefresh
+    [self.tableView addLegendFooterWithRefreshingTarget:self refreshingAction:@selector(loadMorePlaceData)];
+    [self.tableView.footer setTitle:@"" forState:MJRefreshFooterStateIdle];
+    [self.tableView.footer setTitle:@"加载中..." forState:MJRefreshFooterStateRefreshing];
+    [self.tableView.footer setTitle:@"" forState:MJRefreshFooterStateNoMoreData];
+    self.tableView.footer.font= [UIFont systemFontOfSize:kCommonFontSize];
+    self.tableView.footer.textColor = RGB(133, 133, 133);
+}
+
+-(void) setLocation {
+    float latitude = self.curLocation.coordinate.latitude;
+    float longitude = self.curLocation.coordinate.longitude;
+    _locationStr = [[NSString stringWithFormat:@"%f", latitude] stringByAppendingString:@","];
+    _locationStr = [_locationStr stringByAppendingString:[NSString stringWithFormat:@"%f", longitude]];
+}
+
+-(void)loadPlaceData {
+    WEAKSELF
+    AFHTTPRequestOperationManager *manager = [AFHTTPRequestOperationManager manager];
+    NSDictionary *parameters = @{@"query":self.title,
+                                 @"filter":@"sort_name:distance|sort_rule:1",
+                                 @"location":_locationStr,
+                                 @"radius":@"10000",
+                                 @"output":@"json",
+                                 @"page_size":[NSString stringWithFormat:@"%d",LOADCOUNT],
+                                 @"page_num":@"0",
+                                 @"ak":@"09cmlNxsS1iktzC80EZGeyBW"};
+    [manager GET:@"http://api.map.baidu.com/place/v2/search" parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject) {
+        //NSLog(@"JSON: %@", responseObject);
+        _regionArr = [[responseObject objectForKey:@"results"] mutableCopy];
+        
+        weakSelf.curLoadCount  = 1;
+        [weakSelf.tableView reloadData];
+        [weakSelf.tableView.header endRefreshing];
+        if (_regionArr.count<LOADCOUNT) {
+            [weakSelf.tableView.footer setHidden:YES];
+            weakSelf.tableView.footer.state = MJRefreshFooterStateNoMoreData;
+        }
+        else{
+            weakSelf.tableView.footer.state = MJRefreshFooterStateIdle;
+        }
+    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+        NSLog(@"Error: %@", error);
+    }];
+}
+
+-(void)loadMorePlaceData {
+    WEAKSELF
+    AFHTTPRequestOperationManager *manager = [AFHTTPRequestOperationManager manager];
+    NSDictionary *parameters = @{@"query":self.title,
+                                 @"filter":@"sort_name:distance|sort_rule:1",
+                                 @"location":_locationStr,
+                                 @"radius":@"10000",
+                                 @"output":@"json",
+                                 @"page_size":[NSString stringWithFormat:@"%d",LOADCOUNT],
+                                 @"page_num":[NSString stringWithFormat:@"%d",self.curLoadCount],
+                                 @"ak":@"09cmlNxsS1iktzC80EZGeyBW"};
+    [manager GET:@"http://api.map.baidu.com/place/v2/search" parameters:parameters success:^(AFHTTPRequestOperation *operation, id responseObject) {
+        //NSLog(@"JSON: %@", responseObject);
+        NSArray *morePlaceArr = [responseObject objectForKey:@"results"];
+        
+        if (morePlaceArr.count==0) {
+            [weakSelf.tableView.footer setHidden:YES];
+            weakSelf.tableView.footer.state = MJRefreshFooterStateNoMoreData;
+        }else {
+            if (_regionArr == nil) {
+                _regionArr = [NSMutableArray array];
+            }
+            [_regionArr addObjectsFromArray:morePlaceArr];
+            _curLoadCount++;
+            [weakSelf.tableView reloadData];
+            [weakSelf.tableView.footer endRefreshing];
+        }
+    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+        NSLog(@"Error: %@", error);
+    }];
+}
+
+
+#pragma mark - Table view data source
+
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView {
+    return 1;
+}
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    return _regionArr.count;
+}
+
+
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
+    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"indentifier"];
+    if (!cell) {
+        cell = [[UITableViewCell alloc]initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"indentifier"];
+    }
+    
+    NSDictionary *dict = [_regionArr objectAtIndex:indexPath.row];
+    cell.textLabel.text = [dict objectForKey:@"name"];
+    cell.detailTextLabel.text = @"detail";
+    
+    return cell;
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+}
+
+#pragma mark - Table view delegate
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    NSDictionary *dict = [_regionArr objectAtIndex:indexPath.row];
+    NSString *placeName = [dict objectForKey:@"name"];
+    NSDictionary *locationDict = [dict objectForKey:@"location"];
+    NSNumber *lat = [locationDict objectForKey:@"lat"];
+    NSNumber *lng = [locationDict objectForKey:@"lng"];
+    
+    if ([self.regionTableVCDelegate respondsToSelector:@selector(setPLaceTextFieldWithName:latitude:longitude:)]) {
+        [self.regionTableVCDelegate setPLaceTextFieldWithName:placeName latitude:lat.floatValue longitude:lng.floatValue];
+        
+        [self.navigationController popViewControllerAnimated:YES];
+    }
+}
+
+@end

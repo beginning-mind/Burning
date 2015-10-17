@@ -1,0 +1,58 @@
+//
+//  GroupDetailViewController.h
+//  Burning
+//
+//  Created by Xiang Li on 15/6/20.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "BaseViewController.h"
+#import "LeanChatLib.h"
+#import <STAlertView/STAlertView.h>
+
+@interface GroupDetailViewController : BaseViewController<UIActionSheetDelegate, UIImagePickerControllerDelegate>
+
+@property(nonatomic, strong)AVIMConversation *conversion;
+//@property (weak, nonatomic) IBOutlet UITextView *groupName;
+//@property (weak, nonatomic) IBOutlet UITextView *groupLocation;
+@property (weak, nonatomic) IBOutlet UITextView *groupBrief;
+@property (weak, nonatomic) IBOutlet UIButton *groupName;
+@property (weak, nonatomic) IBOutlet UIButton *groupLocation;
+@property (weak, nonatomic) IBOutlet UIView *avatarViewContainer;
+@property (weak, nonatomic) IBOutlet UILabel *memberNumber;
+//@property (weak, nonatomic) IBOutlet UIButton *avatarButton2;
+
+//ImageView不起作用，改为代码布局
+//@property (weak, nonatomic) IBOutlet UIImageView *avatarBackgroud;
+//@property (weak, nonatomic) IBOutlet UIImageView *avatarView;
+//@property (weak, nonatomic) IBOutlet UILabel *sequenceLabel;
+@property (weak, nonatomic) IBOutlet UIView *picHolder;
+
+
+//非群主需要隐藏和显示的View
+@property (weak, nonatomic) IBOutlet UIButton *editGroupName;
+@property (weak, nonatomic) IBOutlet UIButton *editGroupLoc;
+@property (weak, nonatomic) IBOutlet UIButton *editGroupBrief;
+
+@property (weak, nonatomic) IBOutlet UISwitch *switchButton;
+@property (weak, nonatomic) IBOutlet UILabel *noDisturbLabel;
+@property (weak, nonatomic) IBOutlet UIButton *cleanMemory;
+@property (weak, nonatomic) IBOutlet UIButton *exitGroupButton;
+@property (weak, nonatomic) IBOutlet UIButton *dissmiss;
+//@property (weak, nonatomic) IBOutlet UIButton *addMembers;
+@property (weak, nonatomic) IBOutlet UIView *bottomView;
+@property (weak, nonatomic) IBOutlet UIButton *bottomButton;
+
+//解散群密码确认模态框
+@property(nonatomic, strong) STAlertView *dissmissDialog;
+
+//- (IBAction)ShowMemberList:(id)sender;
+- (IBAction)switchAction:(id)sender;
+- (IBAction)dissmissGroup:(id)sender;
+- (IBAction)editGroupNameAction:(id)sender;
+- (IBAction)editGroupLocAction:(id)sender;
+- (IBAction)editGroupBriefAction:(id)sender;
+- (IBAction)exitGroupButtonAction:(id)sender;
+- (IBAction)bottomButtonAction:(id)sender;
+- (IBAction)cleanMemoryAction:(id)sender;
+@end

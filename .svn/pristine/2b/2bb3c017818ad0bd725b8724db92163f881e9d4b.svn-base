@@ -1,0 +1,522 @@
+//
+//  LCDataHelper.m
+//  Burning
+//
+//  Created by wei_zhu on 15/5/28.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "LCDataHelper.h"
+
+@implementation LCDataHelper
+
+
+#pragma mark publish
+
+-(void)getPublishAttentiondWithlimit:(NSInteger*)limit skip:(NSInteger*)skip block:(AVArrayResultBlock)block{
+    AVQuery *query = [[AVUser currentUser] followeeQuery];
+    [query includeKey:@"followee"];
+    
+    AVQuery *q = [LCPublish query];
+    q.skip = skip;
+    q.limit = limit;
+    [q orderByDescending:KEY_CREATED_AT];
+    [q includeKey:KEY_ALBUM_PHOTOS];
+    [q includeKey:KEY_DIG_USERS];
+    [q includeKey:KEY_CREATOR];
+    [q includeKey:KEY_COMMENTUSERS];
+    [q includeKey:@"comments.commentUser"];
+    [q includeKey:@"comments.toUser"];
+    [q whereKey:KEY_IS_DEL equalTo:@0];
+    [q whereKey:KEY_CREATOR matchesKey:@"followee" inQuery:query];
+    [q setCachePolicy:kAVCachePolicyNetworkElseCache];
+    [q findObjectsInBackgroundWithBlock:block];
+}
+
+-(void)getPublishWithObjectId:(NSString*)objId block:(AVArrayResultBlock)block{
+    AVQuery *q = [LCPublish query];
+    [q includeKey:KEY_ALBUM_PHOTOS];
+    [q includeKey:KEY_DIG_USERS];
+    [q includeKey:KEY_CREATOR];
+    [q includeKey:KEY_COMMENTUSERS];
+    [q includeKey:@"comments.commentUser"];
+    [q includeKey:@"comments.toUser"];
+    [q whereKey:@"objectId" equalTo:objId];
+    [q setCachePolicy:kAVCachePolicyNetworkElseCache];
+    [q findObjectsInBackgroundWithBlock:block];
+}
+
+-(void)getPublishsWithlimit:(NSInteger*)limit block:(AVArrayResultBlock)block{
+    AVQuery *q = [LCPublish query];
+    q.limit = limit;
+    [q orderByDescending:KEY_CREATED_AT];
+    [q includeKey:KEY_ALBUM_PHOTOS];
+    [q includeKey:KEY_DIG_USERS];
+    [q includeKey:KEY_CREATOR];
+    [q includeKey:@"comments.commentUser"];
+    [q includeKey:@"comments.toUser"];
+    [q whereKey:KEY_IS_DEL equalTo:@0];
+    [q setCachePolicy:kAVCachePolicyNetworkElseCache];
+    [q findObjectsInBackgroundWithBlock:block];
+}
+
+-(void)getPublishsWithlimit:(NSInteger*)limit skip:(NSInteger*)skip block:(AVArrayResultBlock)block{
+    AVQuery *q = [LCPublish query];
+    q.skip = skip;
+    q.limit = limit;
+    [q orderByDescending:KEY_CREATED_AT];
+    [q includeKey:KEY_ALBUM_PHOTOS];
+    [q includeKey:KEY_DIG_USERS];
+    [q includeKey:KEY_COMMENTUSERS];
+    [q includeKey:KEY_CREATOR];
+    [q includeKey:@"comments"];
+//    [q includeKey:@"comments.toUser"];
+    [q whereKey:KEY_IS_DEL equalTo:@0];
+    [q setCachePolicy:kAVCachePolicyNetworkElseCache];
+    [q findObjectsInBackgroundWithBlock:block];
+}
+
+-(void)getPublishsWithUser:(AVUser*)user limit:(NSInteger*)limit skip:(NSInteger*)skip block:(AVArrayResultBlock)block{
+    AVQuery *q = [LCPublish query];
+    q.skip = skip;
+    q.limit = limit;
+    [q orderByDescending:KEY_CREATED_AT];
+    [q includeKey:KEY_ALBUM_PHOTOS];
+    [q includeKey:KEY_DIG_USERS];
+    [q includeKey:KEY_CREATOR];
+    [q includeKey:KEY_COMMENTUSERS];
+    [q includeKey:@"comments.commentUser"];
+    [q includeKey:@"comments.toUser"];
+    [q whereKey:KEY_IS_DEL equalTo:@0];
+    [q whereKey:KEY_CREATOR equalTo:user];
+    [q setCachePolicy:kAVCachePolicyNetworkElseCache];
+    [q findObjectsInBackgroundWithBlock:block];
+}
+
+-(void)digOrCancelDigOfPublish:(LCPublish*)lcPublish block:(AVBooleanResultBlock)block{
+    AVUser* user=[AVUser currentUser];
+    if([lcPublish.digUsers containsObject:user]){
+        [lcPublish removeObject:user forKey:KEY_DIG_USERS];
+        [lcPublish incrementKey:KEY_HOT_COUNT byAmount:[NSNumber numberWithInt:-1]];
+    }else{
+        [lcPublish addObject:user forKey:KEY_DIG_USERS];
+        [lcPublish incrementKey:KEY_HOT_COUNT];
+    }
+    [lcPublish saveInBackgroundWithBlock:block];
+}
+
+-(void)getHotPhotoWithlimit:(NSInteger*)limit block:(AVArrayResultBlock)block{
+    AVQuery *q = [LCPublish query];
+    q.limit = limit;
+    [q orderByDescending:KEY_HOT_COUNT];
+//    [q orderByDescending:KEY_DIG_COUNT];
+//    [q orderByDescending:KEY_CREATED_AT];
+    [q includeKey:KEY_ALBUM_PHOTOS];
+    [q includeKey:KEY_DIG_USERS];
+    [q includeKey:KEY_CREATOR];
+    [q includeKey:KEY_COMMENTUSERS];
+    [q includeKey:@"comments.commentUser"];
+    [q includeKey:@"comments.toUser"];
+    [q whereKey:KEY_IS_DEL equalTo:@0];
+    [q whereKeyExists:KEY_ALBUM_PHOTOS];
+    [q setCachePolicy:kAVCachePolicyNetworkElseCache];
+    [q findObjectsInBackgroundWithBlock:block];
+}
+
+-(void)getHotPhotoWithlimit:(NSInteger*)limit skip:(NSInteger*)skip block:(AVArrayResultBlock)block{
+    //testCode:
+    AVQuery *q = [LCPublish query];
+    q.skip = skip;
+    q.limit = limit;
+    [q orderByDescending:KEY_HOT_COUNT];
+//    [q orderByDescending:KEY_DIG_COUNT];
+//    [q orderByDescending:KEY_CREATED_AT];
+    [q includeKey:KEY_ALBUM_PHOTOS];
+    [q includeKey:KEY_DIG_USERS];
+    [q includeKey:KEY_CREATOR];
+    [q includeKey:KEY_COMMENTUSERS];
+    [q includeKey:@"comments.commentUser"];
+    [q includeKey:@"comments.toUser"];
+    [q whereKeyExists:KEY_ALBUM_PHOTOS];
+    [q whereKey:KEY_IS_DEL equalTo:@0];
+    [q setCachePolicy:kAVCachePolicyNetworkElseCache];
+    [q findObjectsInBackgroundWithBlock:block];
+}
+
+-(void)publishWithContent:(NSString*)content images:(NSArray*)images error:(NSError**)error{
+    NSMutableArray *photoFiles = nil;
+    NSError *pubError;
+    if (images.count>0) {
+        photoFiles = [NSMutableArray array];
+    }
+    for (UIImage *image in images) {
+        NSData *imageData = UIImageJPEGRepresentation(image, 0.8);
+        CGFloat imgWidth = image.size.width;
+        CGFloat imgHeight = image.size.height;
+        NSString *imgSize = [NSString stringWithFormat:@"%f,%f",imgWidth,imgHeight];
+        AVFile *photoFile = [AVFile fileWithData:imageData];
+        [photoFile.metaData setObject:imgSize forKey:@"imgSize"];
+//        [photoFile.metaData setValue:imgSize forKey:@"imgSize"];
+        [photoFile save:&pubError];
+        if (pubError==nil) {
+            [photoFiles addObject:photoFile];
+        }
+        else{
+            for (AVFile *file in photoFiles) {
+                [file deleteInBackground];
+            }
+            return;
+        }
+    }
+    AVUser *user =[AVUser currentUser];
+    LCPublish *publish = [LCPublish object];
+    publish.creator  = user;
+    publish.publishContent = content;
+    publish.publishPhotos = photoFiles;
+    publish.isDel =[NSNumber numberWithInt:0];
+    publish.digUsers = [NSArray array];
+    publish.comments = [NSArray array];
+    publish.hotCount = 0;
+    [publish save:&pubError];
+    *error = pubError;
+}
+
+
+-(void)pubComment:(LCComment*)comment AtPublish:(LCPublish*)lcPublish  block:(AVBooleanResultBlock)block{
+    [comment saveInBackgroundWithBlock:^(BOOL succeeded, NSError *error) {
+        if(error){
+            block(NO,error);
+        }else{
+            [lcPublish addObject:comment forKey:KEY_COMMENTS];
+            [lcPublish addObject:comment.commentUser forKey:KEY_COMMENTUSERS];
+            [lcPublish incrementKey:KEY_HOT_COUNT];
+            [lcPublish saveInBackgroundWithBlock:block];
+        }
+    }];
+}
+
+-(void)getUserWithPhoneNum:(NSString *)phoneNum block:(AVArrayResultBlock)block{
+    AVQuery *q = [AVUser query];
+    [q whereKey:@"mobilePhoneNumber" equalTo:phoneNum];
+    [q findObjectsInBackgroundWithBlock:block];
+}
+
+-(void)getUserWithUsername:(NSString *)username butNotObjId:(NSString*)objId block:(AVArrayResultBlock)block{
+    AVQuery *q = [AVUser query];
+    [q whereKey:@"objectId" notEqualTo:objId];
+    [q whereKey:@"username" equalTo:username];
+    [q findObjectsInBackgroundWithBlock:block];
+}
+
+-(void)getUserWithUsername:(NSString *)username block:(AVArrayResultBlock)block{
+    AVQuery *q = [AVUser query];
+    [q whereKey:@"username" equalTo:username];
+    [q findObjectsInBackgroundWithBlock:block];
+}
+
+#pragma mark Activity
+
+-(void)getAcitivityWithObjectId:(NSString*)objId block:(AVArrayResultBlock)block{
+    AVQuery *q = [LCActivity query];
+    [q orderByDescending:KEY_CREATED_AT];
+    [q includeKey:KEY_CREATOR];
+    [q includeKey:KEY_ATTEND_USERS];
+    [q includeKey:KEY_COMMENTUSERS];
+    [q includeKey:@"comments.commentUser"];
+    [q includeKey:@"comments.toUser"];
+    [q whereKey:@"objectId" equalTo:objId];
+    [q setCachePolicy:kAVCachePolicyNetworkElseCache];
+    [q findObjectsInBackgroundWithBlock:block];
+}
+
+-(void)getActivityWithlimit:(NSInteger*)limit skip:(NSInteger*)skip latitude:(double)latitude longitude:(double)longitude block:(AVArrayResultBlock)block{
+    AVQuery *q = [LCActivity query];
+    NSDate *curDate = [NSDate date];
+    AVGeoPoint *userLocation =  [AVGeoPoint geoPointWithLatitude:latitude longitude:longitude];
+    q.skip = skip;
+    q.limit = limit;
+    [q orderByDescending:KEY_CREATED_AT];
+    [q includeKey:KEY_CREATOR];
+    [q includeKey:KEY_ATTEND_USERS];
+    [q includeKey:@"comments.commentUser"];
+    [q includeKey:@"comments.toUser"];
+    [q includeKey:KEY_COMMENTUSERS];
+    [q whereKey:@"location" nearGeoPoint:userLocation];
+    [q whereKey:KEY_IS_DEL equalTo:@0];
+    [q whereKey:@"activityDate" greaterThan:curDate ];
+    [q setCachePolicy:kAVCachePolicyNetworkElseCache];
+    [q findObjectsInBackgroundWithBlock:block];
+}
+
+-(void)createActivityWith:(NSString*)title date:(NSDate*)date place:(NSString*)place latitude:(double)latitude longitude:(double)longitude maxPersonCount:(NSString*)maxPersonCount coast:(NSString*)coast content:(NSString*)content backImage:(UIImage*)backImage error:(NSError**)error{
+    
+    NSError *createError;
+    AVFile *backFile;
+    if (backImage!=nil) {
+        backFile = [AVFile fileWithData:UIImageJPEGRepresentation(backImage, 0.8)];
+        [backFile save:&createError];
+        if (createError!=nil) {
+            return;
+        }
+    }
+    AVUser *user = [AVUser currentUser];
+    LCActivity *lcActivity = [LCActivity object];
+    lcActivity.creator = user;
+    lcActivity.title = title;
+    lcActivity.activityDate = date;
+    lcActivity.place = place;
+    lcActivity.maxPersonCount = maxPersonCount;
+    lcActivity.coast = coast;
+    lcActivity.content = content;
+    lcActivity.isDel = [NSNumber numberWithInt:0];
+    lcActivity.backGroundFile = backFile;
+    lcActivity.attendUsers = [NSArray arrayWithObject:[AVUser currentUser]];
+    lcActivity.comments = [NSArray array];
+    AVGeoPoint *point = [AVGeoPoint geoPointWithLatitude:latitude longitude:longitude];
+    [lcActivity setObject:point forKey:@"location"];
+    [lcActivity save:&createError];
+    *error = createError;
+}
+
+-(void)pubActivityComment:(LCActivityComment*)comment AtActivity:(LCActivity*)lcActivity block:(AVBooleanResultBlock)block{
+    [comment saveInBackgroundWithBlock:^(BOOL succeeded, NSError *error) {
+        if(error){
+            block(NO,error);
+        }else{
+            [lcActivity addObject:comment forKey:KEY_COMMENTS];
+            [lcActivity addObject:comment.commentUser forKey:KEY_COMMENTUSERS];
+            [lcActivity saveInBackgroundWithBlock:block];
+        }
+    }];
+}
+
+-(void)attendActivity:(LCActivity*)lcActivity block:(AVBooleanResultBlock)block{
+    AVUser* user=[AVUser currentUser];
+    if([lcActivity.attendUsers containsObject:user]){
+        [lcActivity removeObject:user forKey:KEY_ATTEND_USERS];
+    }
+    else{
+        [lcActivity addObject:user forKey:KEY_ATTEND_USERS];
+    }
+    [lcActivity saveInBackgroundWithBlock:block];
+}
+
+#pragma mark DailyNews
+-(void)getDailyNewsWithObjectID:(NSString *)objId block:(AVArrayResultBlock)block{
+    AVQuery *q = [LCDailyNews query];
+    [q whereKey:@"objectId" equalTo:objId];
+    [q findObjectsInBackgroundWithBlock:block];
+}
+
+
+#pragma mark nearly person and nearly group
+//创建对话时添加带坐标的记录
+-(void)saveAGroupWithConversation:(AVIMConversation *) conversion latitude:(double)latitude longitude:(double)longitude error:(NSError**)error{
+    
+    [self getGeoGroupInfoWithConversationId:conversion.conversationId block:^(NSArray *objects, NSError *error2) {
+        NSError *createError;
+        if (error2) {
+            if (error2.code == 101) {
+                LCGroup *lcGroup = [LCGroup object];
+                lcGroup.conversationId = conversion.conversationId;
+                lcGroup.isDel = [NSNumber numberWithInt:0];
+                
+                AVGeoPoint *point =  [AVGeoPoint geoPointWithLatitude:latitude longitude:longitude];
+                [lcGroup setObject:point forKey:@"location"];
+                [lcGroup save:&createError];
+                *error = createError;
+            } else {
+                NSLog(@"获取群组地理位置错误");
+            }
+        }else {
+            if (objects.count >0) {
+                LCGroup *lcGroup = [objects objectAtIndex:0];
+                AVGeoPoint *point =  [AVGeoPoint geoPointWithLatitude:latitude longitude:longitude];
+                [lcGroup setObject:point forKey:@"location"];
+                [lcGroup save:&createError];
+                *error = createError;
+            }else {
+                LCGroup *lcGroup = [LCGroup object];
+                lcGroup.conversationId = conversion.conversationId;
+                lcGroup.isDel = [NSNumber numberWithInt:0];
+                
+                AVGeoPoint *point =  [AVGeoPoint geoPointWithLatitude:latitude longitude:longitude];
+                [lcGroup setObject:point forKey:@"location"];
+                [lcGroup save:&createError];
+                *error = createError;
+            }
+        }
+    }];
+}
+
+-(void)getGeoGroupInfoWithConversationId:(NSString *)convId block:(AVArrayResultBlock)block {
+    AVQuery *q = [LCGroup query];
+    [q whereKey:@"conversationId" equalTo:convId];
+    [q whereKey:KEY_IS_DEL equalTo:@0];
+    [q findObjectsInBackgroundWithBlock:block];
+}
+
+-(void)getGroupsWithLimit:(NSInteger)limit skip:(NSInteger)skip latitude:(double)latitude longitude:(double)longitude block:(AVArrayResultBlock)block {
+    AVQuery *q = [LCGroup query];
+    AVGeoPoint *userLocation =  [AVGeoPoint geoPointWithLatitude:latitude longitude:longitude];
+    q.skip = skip;
+    q.limit = limit;
+    //    [q orderByDescending:KEY_CREATED_AT];
+    [q whereKey:@"location" nearGeoPoint:userLocation];
+    [q whereKey:KEY_IS_DEL equalTo:@0];
+    [q setCachePolicy:kAVCachePolicyNetworkElseCache];
+    [q findObjectsInBackgroundWithBlock:block];
+}
+
+-(void)deleteGeoGroupWithConversationId:(NSString*) convId {
+    [self getGeoGroupInfoWithConversationId:convId block:^(NSArray *objects, NSError *error) {
+        if (error) {
+            NSLog(@"获取Group信息失败");
+        }else {
+            if (objects.count>0) {
+                LCGroup *lcGroup = [objects objectAtIndex:0];
+                lcGroup.isDel = [NSNumber numberWithInt:0];
+                [lcGroup saveInBackground];
+            }
+        }
+    }];
+}
+
+-(void)getPersonNearbyWithLimit:(NSInteger)limit skip:(NSInteger)skip latitude:(double)latitude longitude:(double)longitude  andGender:(NSString*)gender block:(AVArrayResultBlock)block {
+    AVUser *currUser = [AVUser currentUser];
+    AVQuery *q = [AVUser query];
+    AVGeoPoint *userLocation =  [AVGeoPoint geoPointWithLatitude:latitude longitude:longitude];
+    q.skip = skip;
+    q.limit = limit;
+    //[q orderByDescending:KEY_CREATED_AT];
+    if (![gender isEqualToString:@""]) {
+        [q whereKey:@"gender" equalTo:gender];
+    }
+    [q whereKey:@"location" nearGeoPoint:userLocation];
+    [q whereKey:@"objectId" notEqualTo:currUser.objectId];
+    [q whereKey:KEY_IS_DEL equalTo:@0];
+    [q setCachePolicy:kAVCachePolicyNetworkElseCache];
+    [q findObjectsInBackgroundWithBlock:block];
+}
+
+#pragma mark 注册
+-(void)saveSequenceWithType:(NSInteger)type Block:(AVIntegerResultBlock)block{
+    [self getSequenceNumWithType:type Block:^(NSInteger number, NSError *error) {
+        if (error) {
+            block(-1, error);
+        }else {
+            block(number, nil);
+        }
+    }];
+}
+
+-(void)getSequenceNumWithType:(NSInteger)type Block:(AVIntegerResultBlock)block{
+    AVQuery *q = [LCSequence query];
+    [q whereKey:@"type" equalTo:@(type)];
+    [q findObjectsInBackgroundWithBlock:^(NSArray *objects, NSError *error) {
+        if (error) {
+            block(-1,error);
+        }else {
+            if (objects.count>0) {
+                LCSequence *lcSequence = [objects objectAtIndex:0];
+                [lcSequence incrementKey:@"sequenceNum"];
+                [lcSequence saveInBackgroundWithBlock:^(BOOL succeeded, NSError *error) {
+                    if (error) {
+                        block(-1, nil);
+                    } else {
+                        block([lcSequence.sequenceNum intValue], nil);
+                    }
+                }];
+            }
+        }
+    }];
+}
+
+//user
+-(void)getUserWithObjectId:(NSString*)objId block:(AVArrayResultBlock)block{
+    AVQuery *q = [AVUser query];
+    [q whereKey:@"objectId" equalTo:objId];
+    [q setCachePolicy:kAVCachePolicyNetworkElseCache];
+    [q findObjectsInBackgroundWithBlock:block];
+}
+
+-(void)getUserArrayWithObjectIdArray:(NSArray*)objIds block:(AVArrayResultBlock)block {
+    AVQuery *q = [AVUser query];
+    [q whereKey:@"objectId" containedIn:objIds];
+    [q setCachePolicy:kAVCachePolicyNetworkElseCache];
+    [q findObjectsInBackgroundWithBlock:block];
+}
+
+-(void)getUsersFollowedEachOtherWithUser:(AVUser *)user block:(AVArrayResultBlock)block{
+    [user getFollowees:^(NSArray *objects1, NSError *error) {
+        if(error) {
+            NSLog(@"获取我关注的人们失败");
+        }else {
+            [user getFollowers:^(NSArray *objects2, NSError *error2) {
+                if(error2) {
+                    NSLog(@"获取粉丝们失败");
+                } else {
+                    NSMutableArray *followedEachOtherUsers = [[NSMutableArray alloc]init];
+                    for (AVUser *user1 in objects1 ) {
+                        for(AVUser *user2 in objects2) {
+                            NSString *username1 = user1.username;//我关注的人
+                            NSString *username2 = user2.username;//我的粉丝
+                            if([username1 isEqualToString:username2]){
+                                [followedEachOtherUsers addObject:user2];
+                            }
+                        }
+                    }
+                    block([followedEachOtherUsers copy], nil);
+                }
+            }];
+        }
+    }];
+}
+
+-(void)getUsersByUsernames:(NSMutableArray *)usernames block:(AVArrayResultBlock)block{
+    NSMutableArray *avUsers = [[NSMutableArray alloc]init];
+    for (NSString *username in usernames) {
+        AVQuery *q = [AVUser query];
+        [q whereKey:@"username" equalTo:username];
+        NSArray *objects = [q findObjects];
+        if(objects.count == 1) {
+            [avUsers addObject:[objects objectAtIndex:0]];
+        }
+    }
+    block([avUsers copy],nil);
+}
+
+#pragma mark bodybuilding video
+-(void)getBodyBuildingBlock:(AVArrayResultBlock)block{
+    AVQuery *q = [LCBodyBuilding query];
+    [q orderByAscending:@"sequence"];
+    [q includeKey:VEDIO_BACK_FILE];
+    [q setCachePolicy:kAVCachePolicyNetworkElseCache];
+    [q findObjectsInBackgroundWithBlock:block];
+}
+
+-(void)fetchPersonWithSequenceId:(NSInteger)sequenceNum Block:(AVArrayResultBlock)block {
+    AVQuery *q = [AVUser query];
+    [q whereKey:@"sequenceNum" equalTo:@(sequenceNum)];
+    [q findObjectsInBackgroundWithBlock:block];
+}
+
+-(void)saveFeedbackWithLCFeedback:(LCFeedback*)lcFeedback error:(NSError**)error {
+    NSError *createError;
+    [lcFeedback save:&createError];
+    *error = createError;
+}
+
+#pragma mark lcReport
+-(void)upLoadReport:(NSString*)reportUserID reportedUserID:(NSString*)reportedUserID publishID:(NSString*)publishID reportType:(NSInteger)reportType error:(NSError**)error{
+    NSError *createError;
+    LCReport *lcReport = [LCReport object];
+    lcReport.reportUserID = reportUserID;
+    lcReport.reportedUserID = reportedUserID;
+    lcReport.pulishID = publishID;
+    lcReport.reportType = reportType;
+    [lcReport save:&createError];
+    *error = createError;
+}
+
+@end

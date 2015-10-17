@@ -1,0 +1,591 @@
+//
+//  CreateActivityViewController.m
+//  Burning
+//
+//  Created by wei_zhu on 15/6/22.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "CreateActivityViewController.h"
+#import "SVGloble.h"
+#import "XHPhotographyHelper.h"
+#import "LCDataHelper.h"
+#import <CoreLocation/CoreLocation.h>
+
+typedef void(^DoneActionBlock)(id);
+
+@interface CreateActivityViewController ()<CLLocationManagerDelegate>
+
+@property (strong,nonatomic) XHPhotographyHelper* photographyHelper;
+
+@property(nonatomic,strong)UIImageView *activityBg;
+@property(nonatomic,strong)UIImageView *avtarImgView;
+
+@property(nonatomic,strong)UILabel *titleLabel;
+@property(nonatomic,strong)UITextField *titleText;
+
+@property(nonatomic,strong)UITextField *timeText;
+
+@property(nonatomic,strong)UITextField *placeText;
+
+@property(nonatomic,strong)UITextField *maxPersonText;
+
+@property(nonatomic,strong)UITextField *coastText;
+
+@property(nonatomic,strong)UILabel *explainLabel;
+@property(nonatomic,strong)UITextView *explainTextView;
+
+@property(nonatomic,strong)UIButton *createActivityBtn;
+
+@property(nonatomic,strong)UIView *seprator1;
+@property(nonatomic,strong)UIView *seprator2;
+
+@property(nonatomic,assign)bool defaultScorll;
+
+@property(nonatomic,assign)CGFloat orignaloffesetY;
+
+@property(nonatomic,assign)CGFloat keyBoardHeight;
+
+@property(nonatomic,assign)CGFloat orignalfocusedControlMaxY;
+
+@property(nonatomic,assign)CGFloat newoffesetY;
+
+@property(nonatomic,assign)CGFloat orignalContentSiezeHeight;
+
+@property(nonatomic,strong) CLLocationManager *locationManager;
+
+@property(nonatomic,strong)CLLocation *curLocation;
+
+@property(nonatomic,assign)BOOL avatarChanged;
+
+@end
+
+@implementation CreateActivityViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    [self setUp];
+    
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:UIKeyboardWillShowNotification object:nil];
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:UIKeyboardWillHideNotification object:nil];
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillShow:) name:UIKeyboardWillShowNotification object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(keyboardWillHide:) name:UIKeyboardWillHideNotification object:nil];
+
+    [self startLocations];
+}
+
+-(void)setUp{
+    
+    self.title = @"创建活动";
+    self.scrollView.frame = CGRectMake(0, 0, [SVGloble shareInstance].globleWidth, [SVGloble shareInstance].globleAllHeight);
+    self.scrollView.delegate = self;
+    [self.scrollView addSubview:self.activityBg];
+    
+    [self.scrollView addSubview:self.titleLabel];
+    [self.scrollView addSubview:self.titleText];
+    
+    [self.scrollView addSubview:self.seprator1];
+    
+    [self.scrollView addSubview:self.timeText];
+    [self.scrollView addSubview:self.placeText];
+    [self.scrollView addSubview:self.maxPersonText];
+    [self.scrollView addSubview:self.coastText];
+    
+    [self.scrollView addSubview:self.seprator2];
+    
+    [self.scrollView addSubview:self.explainLabel];
+    [self.scrollView addSubview:self.explainTextView];
+    
+    [self.scrollView addSubview:self.createActivityBtn];
+    
+    CGFloat maxy = CGRectGetMaxY(self.createActivityBtn.frame);
+    CGFloat delta = maxy+kCommonSpace -[SVGloble shareInstance].globleAllHeight+kStatusBarHeight+kNavigationBarHeight;
+    if (delta>0) {
+        self.scrollView.contentSize = CGSizeMake([[UIScreen mainScreen] bounds].size.width, maxy+kCommonSpace+kStatusBarHeight);
+        self.defaultScorll = YES;
+        self.orignalContentSiezeHeight = maxy+kCommonSpace+kStatusBarHeight;
+    }
+    else{
+        self.scrollView.contentSize = CGSizeZero;
+        self.defaultScorll = NO;
+        self.orignalContentSiezeHeight = 0;
+    }
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+-(void)startLocations{
+    self.locationManager = [[CLLocationManager alloc]init];
+    if ([CLLocationManager locationServicesEnabled]) {
+        NSLog( @"Starting CLLocationManager" );
+        self.locationManager.delegate = self;
+        self.locationManager.distanceFilter = 200;
+        self.locationManager.desiredAccuracy = kCLLocationAccuracyBest;
+        
+        if([self.locationManager respondsToSelector:@selector(requestAlwaysAuthorization)]) {
+            [self.locationManager requestAlwaysAuthorization]; // 永久授权
+            [self.locationManager requestWhenInUseAuthorization]; //使用中授权
+        }
+        
+        [self.locationManager startUpdatingLocation];
+    }
+    else {
+        NSLog( @"Cannot Starting CLLocationManager" );
+        self.locationManager.delegate = self;
+        self.locationManager.distanceFilter = 200;
+        self.locationManager.desiredAccuracy = kCLLocationAccuracyBest;
+        [self.locationManager startUpdatingLocation];
+    }
+}
+
+-(XHPhotographyHelper*)photographyHelper{
+    if(_photographyHelper==nil){
+        _photographyHelper=[[XHPhotographyHelper alloc] init];
+    }
+    return _photographyHelper;
+}
+
+-(void)hiddenTextPicker{
+    [self.titleText resignFirstResponder];
+    [self.placeText resignFirstResponder];
+    [self.maxPersonText resignFirstResponder];
+    [self.coastText resignFirstResponder];
+    [self.explainTextView resignFirstResponder];
+}
+
+#pragma mark UI
+-(UIImageView*)activityBg{
+    if (_activityBg==nil) {
+        _activityBg = [[UIImageView alloc]initWithFrame:CGRectMake(0, 0, [[UIScreen mainScreen] bounds].size.width, kBackgroudViewHeight)];
+        [_activityBg setImage:[UIImage imageNamed:@"ac_createBg.jpg"]];
+        _activityBg.userInteractionEnabled = YES;
+
+        _avtarImgView = [[UIImageView alloc]initWithFrame:CGRectMake(kLargeAvatarLeadingSpace, kLargeAvatarLeadingSpace, kLagerAvatarSize, kLagerAvatarSize)];
+        [_avtarImgView setImage:[UIImage imageNamed:@"group_blank"]];
+//        _avtarImgView.layer.masksToBounds =YES;
+//        _avtarImgView.layer.cornerRadius =kLagerAvatarSize/2.0;
+        _avtarImgView.userInteractionEnabled = YES;
+        UITapGestureRecognizer *uiTap = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(avatarImageViewClick:)];
+        [_avtarImgView addGestureRecognizer:uiTap];
+        [_activityBg addSubview:_avtarImgView];
+    }
+    return _activityBg;
+}
+
+-(UILabel*)titleLabel{
+    if (_titleLabel==nil) {
+        _titleLabel = [[UILabel alloc]initWithFrame:CGRectMake(kCommonSpace, CGRectGetMaxY(self.activityBg.frame)+kCommonSpace, 28, 18)];
+        _titleLabel.font = [UIFont systemFontOfSize:kCommonFontSize];
+        _titleLabel.textColor = RGB(0, 0, 0);
+        _titleLabel.text = @"主题";
+    }
+    return _titleLabel;
+}
+-(UITextField*)titleText{
+    if (_titleText==nil) {
+        _titleText = [[UITextField alloc]initWithFrame:CGRectMake(kCommonSpace, CGRectGetMaxY(self.titleLabel.frame)+kSmallSpace, [[UIScreen mainScreen] bounds].size.width-2*kCommonSpace, kTextHeight)];
+        _titleText.font = [UIFont systemFontOfSize:kCommonFontSize];
+        _titleText.textColor = RGB(0, 0, 0);
+        _titleText.borderStyle = UITextBorderStyleRoundedRect;
+        _titleText.tag = 1000;
+        _titleText.delegate = self;
+        _titleText.returnKeyType =UIReturnKeyDone;
+    }
+    return _titleText;
+}
+
+-(UIView*)seprator1{
+    if (_seprator1==nil) {
+        _seprator1 = [[UIView alloc]initWithFrame:CGRectMake(0, CGRectGetMaxY(_titleText.frame)+kSmallSpace, [[UIScreen mainScreen] bounds].size.width, 0.5)];
+        _seprator1.backgroundColor = [UIColor colorWithRed:0.89 green:0.89 blue:0.90 alpha:1.0];
+    }
+    return _seprator1;
+}
+
+
+-(UITextField*)timeText{
+    if (_timeText==nil) {
+        _timeText = [[UITextField alloc]initWithFrame:CGRectMake(kCommonSpace, CGRectGetMaxY(self.seprator1.frame)+kSmallSpace, [[UIScreen mainScreen] bounds].size.width-2*kCommonSpace, kTextHeight)];
+        _timeText.font = [UIFont systemFontOfSize:kCommonFontSize];
+        _timeText.textColor = RGB(0, 0, 0);
+        _timeText.borderStyle = UITextBorderStyleRoundedRect;
+        _timeText.tag = 1001;
+        _timeText.delegate = self;
+        UIImageView *leftView= [[UIImageView alloc]initWithFrame:CGRectMake(8, 4, 36, 36)];
+        leftView.image = [UIImage imageNamed:@"ac_time"];
+        _timeText.leftView = leftView;
+        _timeText.leftViewMode  = UITextFieldViewModeAlways;
+        _timeText.placeholder = @"时间";
+    }
+    return  _timeText;
+}
+
+-(UITextField*)placeText{
+    if (_placeText==nil) {
+        _placeText = [[UITextField alloc]initWithFrame:CGRectMake(kCommonSpace, CGRectGetMaxY(self.timeText.frame)+kSmallSpace, [[UIScreen mainScreen] bounds].size.width-2*kCommonSpace, kTextHeight)];
+        _placeText.font = [UIFont systemFontOfSize:kCommonFontSize];
+        _placeText.textColor = RGB(0, 0, 0);
+        _placeText.borderStyle = UITextBorderStyleRoundedRect;
+        _placeText.tag = 1002;
+        _placeText.delegate = self;
+        UIImageView *leftView= [[UIImageView alloc]initWithFrame:CGRectMake(8, 4, 36, 36)];
+        leftView.image = [UIImage imageNamed:@"ac_place"];
+        _placeText.leftView = leftView;
+        _placeText.leftViewMode  = UITextFieldViewModeAlways;
+        _placeText.placeholder = @"地点";
+        _placeText.returnKeyType =UIReturnKeyDone;
+    }
+    return  _placeText;
+}
+
+-(UITextField*)maxPersonText{
+    if (_maxPersonText==nil) {
+        _maxPersonText = [[UITextField alloc]initWithFrame:CGRectMake(kCommonSpace, CGRectGetMaxY(self.placeText.frame)+kSmallSpace, [[UIScreen mainScreen] bounds].size.width-2*kCommonSpace, kTextHeight)];
+        _maxPersonText.font = [UIFont systemFontOfSize:kCommonFontSize];
+        _maxPersonText.textColor = RGB(0, 0, 0);
+        _maxPersonText.borderStyle = UITextBorderStyleRoundedRect;
+        _maxPersonText.tag = 1003;
+        _maxPersonText.delegate = self;
+        UIImageView *leftView= [[UIImageView alloc]initWithFrame:CGRectMake(8, 4, 36, 36)];
+        leftView.image = [UIImage imageNamed:@"ac_maxPerson"];
+        _maxPersonText.leftView = leftView;
+        _maxPersonText.leftViewMode  = UITextFieldViewModeAlways;
+        _maxPersonText.placeholder = @"人数";
+        _maxPersonText.returnKeyType =UIReturnKeyDone;
+    }
+    return  _maxPersonText;
+}
+
+-(UITextField*)coastText{
+    if (_coastText==nil) {
+        _coastText = [[UITextField alloc]initWithFrame:CGRectMake(kCommonSpace, CGRectGetMaxY(self.maxPersonText.frame)+kSmallSpace, [[UIScreen mainScreen] bounds].size.width-2*kCommonSpace, kTextHeight)];
+        _coastText.font = [UIFont systemFontOfSize:kCommonFontSize];
+        _coastText.textColor = RGB(0, 0, 0);
+        _coastText.borderStyle = UITextBorderStyleRoundedRect;
+        _coastText.tag = 1004;
+        _coastText.delegate = self;
+        UIImageView *leftView= [[UIImageView alloc]initWithFrame:CGRectMake(8, 4, 36, 36)];
+        leftView.image = [UIImage imageNamed:@"ac_coast"];
+        _coastText.leftView = leftView;
+        _coastText.leftViewMode  = UITextFieldViewModeAlways;
+        _coastText.placeholder = @"费用";
+        _coastText.returnKeyType =UIReturnKeyDone;
+    }
+    return  _coastText;
+}
+
+-(UIView*)seprator2{
+    if (_seprator2==nil) {
+        _seprator2 = [[UIView alloc]initWithFrame:CGRectMake(0, CGRectGetMaxY(self.coastText.frame)+kSmallSpace, [[UIScreen mainScreen] bounds].size.width, 0.5)];
+        _seprator2.backgroundColor = [UIColor colorWithRed:0.89 green:0.89 blue:0.90 alpha:1.0];
+    }
+    return _seprator2;
+}
+
+-(UILabel*)explainLabel{
+
+    if (_explainLabel==nil) {
+        _explainLabel = [[UILabel alloc]initWithFrame:CGRectMake(kCommonSpace, CGRectGetMaxY(self.seprator2.frame)+kCommonSpace, 28, 18)];
+        _explainLabel.font = [UIFont systemFontOfSize:kCommonFontSize];
+        _explainLabel.textColor = RGB(0, 0, 0);
+        _explainLabel.text = @"说明";
+    }
+    return _explainLabel;
+}
+-(UITextView*)explainTextView{
+    if (_explainTextView==nil) {
+        _explainTextView = [[UITextView alloc]initWithFrame:CGRectMake(kCommonSpace, CGRectGetMaxY(self.explainLabel.frame)+kSmallSpace, [[UIScreen mainScreen] bounds].size.width-2*kCommonSpace, kTextViewHeight)];
+        _explainTextView.font = [UIFont systemFontOfSize:kSmallFontSize];
+        _explainTextView.textColor = RGB(0, 0, 0);
+        _explainTextView.layer.borderColor = [[UIColor colorWithRed:215.0 / 255.0 green:215.0 / 255.0 blue:215.0 / 255.0 alpha:1] CGColor];
+        _explainTextView.layer.borderWidth = 0.6f;
+        _explainTextView.layer.cornerRadius = 6.0f;
+        _explainTextView.delegate = self;
+        _explainTextView.returnKeyType = UIReturnKeyDone;
+    }
+    return  _explainTextView;
+}
+
+-(UIButton*)createActivityBtn{
+    if (_createActivityBtn==nil) {
+        _createActivityBtn = [[UIButton alloc]initWithFrame:CGRectMake(kCommonSpace, CGRectGetMaxY(self.explainTextView.frame)+kCommonSpace, [[UIScreen mainScreen] bounds].size.width-2*kCommonSpace, kLargeBtnHeight)];
+        [_createActivityBtn setTitle:@"发布活动" forState:UIControlStateNormal];
+        _createActivityBtn.titleLabel.font = [UIFont systemFontOfSize:kLargeFontSize];
+        [_createActivityBtn setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+        [_createActivityBtn setBackgroundImage:[UIImage imageNamed:@"co_bottomBtn_bg"] forState:UIControlStateNormal];
+        [_createActivityBtn addTarget:self action:@selector(createActivityBtnClick:) forControlEvents:UIControlEventTouchUpInside];
+    }
+    return  _createActivityBtn;
+}
+
+#pragma mark CLLocationManagerDelegate
+-(void)locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray *)locations{
+    _curLocation = [locations lastObject];
+    [manager stopUpdatingLocation];
+}
+
+#pragma mark - UITextFieldDelegate
+- (BOOL)textFieldShouldBeginEditing:(UITextField *)textField {
+    self.orignaloffesetY = self.scrollView.contentOffset.y;
+    self.orignalfocusedControlMaxY = CGRectGetMaxY(textField.frame);
+    if(textField.tag == 1001){
+        if(IS_IOS8){
+                    UIAlertController* alertVc=[UIAlertController alertControllerWithTitle:@"\n\n\n\n\n\n\n\n\n\n\n" message:nil preferredStyle:(UIAlertControllerStyleActionSheet)];
+                    UIDatePicker* datePicker=[[UIDatePicker alloc]init];
+                    datePicker.datePickerMode = UIDatePickerModeDateAndTime;
+                    datePicker.minuteInterval = 30;
+                    UIAlertAction* ok=[UIAlertAction actionWithTitle:@"确认" style:(UIAlertActionStyleDefault) handler:^(UIAlertAction *action) {
+                        NSDate* date=[datePicker date];
+                        NSDateFormatter* formatter=[[NSDateFormatter alloc]init];
+                        [formatter setDateFormat:@"yyyy-MM-dd HH:mm"];
+                        NSString* curentDatest=[formatter stringFromDate:date];
+                        self.timeText.text=curentDatest;
+                    }];
+                    UIAlertAction* no=[UIAlertAction actionWithTitle:@"取消" style:(UIAlertActionStyleDefault) handler:nil];
+                    [alertVc.view addSubview:datePicker];
+                    [alertVc addAction:ok];
+                    [alertVc addAction:no];
+                    [self presentViewController:alertVc animated:YES completion:nil];
+        }
+        else{
+            //ios7
+            NSString *title = UIDeviceOrientationIsLandscape([UIDevice currentDevice].orientation) ? @"\n\n\n\n\n\n\n\n\n" : @"\n\n\n\n\n\n\n\n\n\n\n";
+            UIActionSheet *datesheet = [[UIActionSheet alloc] initWithTitle:title                                                                   delegate:self                                                          cancelButtonTitle:@"取消"                                                     destructiveButtonTitle:nil                                                          otherButtonTitles:@"确定",                                        nil];
+            [datesheet showInView:self.view];
+            UIDatePicker *datePicker = [[UIDatePicker alloc]init];
+            datePicker.datePickerMode = UIDatePickerModeDateAndTime;
+            datePicker.minuteInterval = 30;
+            datePicker.tag = 101;
+            datesheet.tag = 201;
+//            datePicker.datePickerMode = 1;
+            [datesheet addSubview:datePicker];
+        }
+        self.newoffesetY = self.orignalfocusedControlMaxY+300+kStatusBarHeight+kNavigationBarHeight- [SVGloble shareInstance].globleAllHeight-self.orignaloffesetY;
+        if(self.newoffesetY>0){
+            [UIView beginAnimations:nil context:NULL];
+            [UIView setAnimationDuration:0.4];
+            self.scrollView.contentOffset = CGPointMake(0,self.newoffesetY+self.orignaloffesetY+5);
+            [UIView commitAnimations];
+        }
+        return NO;
+    }
+    return YES;
+}
+
+- (BOOL)textFieldShouldReturn:(UITextField *)textField{
+    [self hiddenTextPicker];
+    return NO;
+}
+
+#pragma mark -textView delegate
+-(BOOL)textViewShouldBeginEditing:(UITextView *)textView{
+    self.orignaloffesetY = self.scrollView.contentOffset.y;
+    self.orignalfocusedControlMaxY = CGRectGetMaxY(textView.frame);
+    return YES;
+}
+
+-(void)textViewDidChange:(UITextView *)textView{
+//    self.explainTextView.text =  textView.text;
+//    if (self.explainTextView.text.length == 0) {
+//        self.placeText.text = @"无";
+//        self.placHolderLabel.textColor = [UIColor colorWithRed:0.77 green:0.77 blue:0.77 alpha:1.0];
+//        self.placHolderLabel.font = [UIFont systemFontOfSize:14.0];
+//    }else{
+//        self.placHolderLabel.text = @"";
+//    }
+}
+
+- (BOOL)textView:(UITextView *)textView shouldChangeTextInRange:(NSRange)range replacementText:(NSString *)text{
+    if ([text isEqualToString:@"\n"]){
+        
+        [self hiddenTextPicker];
+        return NO; //这里返回NO，就代表return键值失效，即页面上按下return，不会出现换行，如果为yes，则输入页面会换行
+    }
+    
+    return YES;
+}
+
+#pragma mark action
+- (void)createActivityBtnClick:(id)sender {
+    if (self.titleText.text==nil || [self.titleText.text isEqualToString:@""]) {
+        [self.titleText becomeFirstResponder];
+        [self alert:@"请填写主题"];
+        return;
+    }
+    if (self.timeText.text==nil || [self.timeText.text isEqualToString:@""]) {
+        [self.timeText becomeFirstResponder];
+        [self alert:@"请选择时间"];
+        return;
+    }
+    if (self.placeText.text==nil || [self.placeText.text isEqualToString:@""]) {
+        [self.placeText becomeFirstResponder];
+        [self alert:@"请填写地点"];
+        return;
+    }
+    if (self.maxPersonText.text==nil || [self.maxPersonText.text isEqualToString:@""]) {
+        [self.maxPersonText becomeFirstResponder];
+        [self alert:@"请填写人数上限"];
+        return;
+    }
+    if (self.coastText.text==nil || [self.coastText.text isEqualToString:@""]) {
+        [self.coastText becomeFirstResponder];
+        [self alert:@"请填写费用"];
+        return;
+    }
+    NSString *inputedMaxPerson = self.maxPersonText.text;
+    
+    NSError *error = NULL;
+    NSRegularExpression *regex = [NSRegularExpression regularExpressionWithPattern:@"^[0-9]*$" options:NSRegularExpressionCaseInsensitive error:&error];
+    NSTextCheckingResult *result = [regex firstMatchInString:inputedMaxPerson options:0 range:NSMakeRange(0, [inputedMaxPerson length])];
+    if (!result) {
+        [self alert:@"人数只能填写数字"];
+        self.maxPersonText.text = nil;
+        self.maxPersonText.placeholder = @"人数";
+        [self.maxPersonText becomeFirstResponder];
+        return;
+    }
+    
+    double latitude = _curLocation.coordinate.latitude;
+    double longtitude = _curLocation.coordinate.longitude;
+    NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
+    formatter.dateFormat = @"yyyy-MM-dd HH:mm";
+    NSDate *creatDate = [formatter dateFromString:self.timeText.text];
+    WEAKSELF
+    [weakSelf showProgress];
+    [weakSelf runInGlobalQueue:^{
+        NSError *error;
+        
+        UIImage *upLoadImage;
+        if (_avatarChanged) {
+            upLoadImage = self.avtarImgView.image;
+        }
+        else{
+            upLoadImage = nil;
+        }
+        [weakSelf.lcDataHelper createActivityWith:self.titleText.text date:creatDate place:self.placeText.text latitude:latitude longitude:longtitude maxPersonCount:self.maxPersonText.text coast:self.coastText.text content:self.explainTextView.text backImage:upLoadImage error:&error];
+        [weakSelf runInMainQueue:^{
+            if (error==nil) {
+                [weakSelf hideProgress];
+                [weakSelf showInfo:@"发布活动成功"];
+                [weakSelf.navigationController popViewControllerAnimated:YES];
+            }
+            else{
+                [weakSelf hideProgress];
+                [weakSelf alert:@"发布活动失败，请重试 :)"];
+            }
+        }];
+    }];}
+
+-(void)avatarImageViewClick:(UIGestureRecognizer*)gestureRecognizer{
+    UIActionSheet *sheet;
+    // 判断是否支持相机
+    if([UIImagePickerController isSourceTypeAvailable:UIImagePickerControllerSourceTypeCamera]){
+        sheet  = [[UIActionSheet alloc] initWithTitle:nil delegate:self cancelButtonTitle:nil destructiveButtonTitle:@"取消" otherButtonTitles:@"拍照",@"从相册选择", nil];
+    }else {
+        sheet = [[UIActionSheet alloc] initWithTitle:nil delegate:self cancelButtonTitle:nil destructiveButtonTitle:@"取消" otherButtonTitles:@"从相册选择", nil];
+    }
+    sheet.tag = 255;
+    [sheet showInView:self.view];
+}
+
+#pragma mark keyboard Delegate
+-(void)keyboardWillShow:(NSNotification *)notification {
+    
+    NSDictionary* info = [notification userInfo];
+    CGSize kbSize = [[info objectForKey:UIKeyboardFrameEndUserInfoKey] CGRectValue].size;
+    self.keyBoardHeight = kbSize.height;
+    CGFloat contentHeight = self.orignalContentSiezeHeight;
+    if (self.defaultScorll) {
+        contentHeight+=self.keyBoardHeight;
+    }
+    else{
+        contentHeight+=self.scrollView.frame.size.height;
+        contentHeight+=self.keyBoardHeight;
+    }
+
+    self.scrollView.contentSize =CGSizeMake([[UIScreen mainScreen] bounds].size.width, contentHeight);
+    
+    self.newoffesetY = self.orignalfocusedControlMaxY+self.keyBoardHeight+kStatusBarHeight+kNavigationBarHeight- [SVGloble shareInstance].globleAllHeight-self.orignaloffesetY;
+    if(self.newoffesetY>0){
+        [UIView beginAnimations:nil context:NULL];
+        [UIView setAnimationDuration:0.4];
+        self.scrollView.contentOffset = CGPointMake(0,self.newoffesetY+self.orignaloffesetY+5);
+        [UIView commitAnimations];
+    }
+}
+
+-(void)keyboardWillHide:(NSNotification *)notification {
+    if (self.defaultScorll) {
+        self.scrollView.contentSize =CGSizeMake([[UIScreen mainScreen] bounds].size.width, self.orignalContentSiezeHeight);
+    }
+    else{
+        self.scrollView.contentSize =CGSizeZero;
+    }
+}
+
+#pragma mark actionSheet delegate
+- (void)actionSheet:(UIActionSheet *)actionSheet clickedButtonAtIndex:(NSInteger)buttonIndex
+{
+    if(actionSheet.tag ==201){
+        if (buttonIndex==0) {
+            UIDatePicker *datePicker = (UIDatePicker *)[actionSheet viewWithTag:101];
+            NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
+            formatter.dateFormat = @"yyyy-MM-dd HH:mm";
+            NSString *timesp = [formatter stringFromDate:datePicker.date];
+            self.timeText.text =timesp;
+        }
+    }
+    else{
+        NSUInteger sourceType = 0;
+        // 判断是否支持相机
+        if([UIImagePickerController isSourceTypeAvailable:UIImagePickerControllerSourceTypeCamera]) {
+            switch (buttonIndex) {
+                case 0:
+                    // 取消
+                    return;
+                case 1:
+                    // 相机
+                    sourceType = UIImagePickerControllerSourceTypeCamera;
+                    break;
+                case 2:
+                    // 相册
+                    sourceType = UIImagePickerControllerSourceTypePhotoLibrary;
+                    break;
+            }
+        }else {
+            if (buttonIndex == 0) {
+                return;
+            } else {
+                sourceType = UIImagePickerControllerSourceTypeSavedPhotosAlbum;
+            }
+        }
+        // 跳转到相机或相册页面
+        UIImagePickerController *imagePickerController = [[UIImagePickerController alloc] init];
+        imagePickerController.delegate = self;
+        imagePickerController.allowsEditing = YES;
+        imagePickerController.sourceType = sourceType;
+        [self presentViewController:imagePickerController animated:YES completion:^{}];
+    }
+}
+
+#pragma mark - image picker delegte
+- (void)imagePickerController:(UIImagePickerController *)picker didFinishPickingMediaWithInfo:(NSDictionary *)info{
+    [picker dismissViewControllerAnimated:YES completion:^{}];
+    UIImage *image = [info objectForKey:UIImagePickerControllerEditedImage];
+//    [self saveImage:image withName:@"group_avatar_creation.jpg"];
+//    UIImage *savedImage = [[UIImage alloc] initWithContentsOfFile:_groupAvatarPath];
+    //_isFullScreen = NO;
+    
+    self.avtarImgView.image = image;
+    _avatarChanged = YES;
+}
+
+- (void)imagePickerControllerDidCancel:(UIImagePickerController *)picker {
+    [self dismissViewControllerAnimated:YES completion:^{}];
+}
+
+@end

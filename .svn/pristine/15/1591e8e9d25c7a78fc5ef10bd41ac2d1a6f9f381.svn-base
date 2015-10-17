@@ -1,0 +1,36 @@
+//
+//  LCBodyBuilding.h
+//  Burning
+//
+//  Created by wei_zhu on 15/7/29.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+#import <AVOSCloud.h>
+
+#define GROUP_BACK_FILE @"groupBackFile"
+#define VEDIO_BACK_FILE @"vedioBackFile"
+#define VEDIO_FILE @"vedioFile"
+
+@interface LCBodyBuilding : AVObject<AVSubclassing>
+
+@property(nonatomic,copy)NSString *title;
+
+@property(nonatomic,strong)AVFile *groupBackFile;
+
+@property(nonatomic,copy)NSString *groupTitle;
+
+@property(nonatomic,strong)AVFile *vedioBackFile;
+
+@property(nonatomic,copy)NSString *group;
+
+@property(nonatomic,assign)NSNumber *playCount;
+
+@property(nonatomic,strong)AVFile *vedioFile;
+
+@property(nonatomic,copy)NSString *other;
+
+@property(nonatomic,assign)NSNumber *sequence;
+
+@end

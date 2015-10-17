@@ -1,0 +1,174 @@
+//
+//  GroupTableViewCell.m
+//  Burning
+//
+//  Created by Xiang Li on 15/7/17.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "GroupTableViewCell.h"
+#import <SDWebImage/UIImageView+WebCache.h>
+#import "LayoutConst.h"
+#import "SVGloble.h"
+#import "NSString+DynamicHeight.h"
+
+@interface GroupTableViewCell()
+
+@property (nonatomic,strong)UIImageView *avatarImageView;
+
+@property (nonatomic,strong)UILabel *usernameLabel;
+
+@property (nonatomic,strong)UILabel *sigNatureLabel;
+
+@property(nonatomic,strong)UILabel *distanceLabel;
+
+@property(nonatomic,strong)UILabel *memberLabel;
+
+@end
+
+@implementation GroupTableViewCell
+
+- (void)awakeFromNib {
+    // Initialization code
+    self.selectionStyle=UITableViewCellSelectionStyleNone;
+}
+
+- (void)setSelected:(BOOL)selected animated:(BOOL)animated {
+    [super setSelected:selected animated:animated];
+
+}
+
++(CGFloat)contentWidth{
+    return CGRectGetWidth([[UIScreen mainScreen] bounds])-2*kCommonSpace-kCommonAvatarSize-kSmallTextAvatarHorizalSpace;
+}
+
++(CGFloat)calculateCellHeightWithUser:(SHGroup*)shGroup{
+    if(shGroup==nil){
+        return 0;
+    }
+    CGFloat richTextHeight=kSmallSpace;
+    richTextHeight+=kLargeLabelHeight;
+    richTextHeight+=kUserListLabeSpading;
+    NSString *signature;
+    if (shGroup.groupSlogan==nil || [shGroup.groupSlogan isEqualToString:@""]) {
+        signature = @"群主在撸铁中，大家随便聊～";
+    }
+    else{
+        signature = shGroup.groupSlogan;
+    }
+    
+    richTextHeight+=[NSString getTextHeight:signature textFont:[UIFont systemFontOfSize:kCommonFontSize] width:[[self class] contentWidth]];
+    richTextHeight+=kSmallSpace;
+    
+    CGFloat avatarSize = 2*kSmallSpace+kCommonAvatarSize;
+    return richTextHeight>avatarSize? richTextHeight :avatarSize;
+}
+
+-(void)setShowGroup:(SHGroup *)showGroup{
+    _showGroup = showGroup;
+    [self.avatarImageView sd_setImageWithURL:[NSURL URLWithString:showGroup.avatarUrl] placeholderImage:[UIImage imageNamed:@"group_blank"]];
+//    self.groupAvatar.layer.masksToBounds = YES;
+//    self.groupAvatar.layer.cornerRadius =36/2.0;
+    
+    self.usernameLabel.text = showGroup.groupName;
+    if (showGroup.groupSlogan==nil || [showGroup.groupSlogan isEqualToString:@""]) {
+        self.sigNatureLabel.text = @"群主在撸铁中，大家随便聊～";
+    }
+    else{
+        self.sigNatureLabel.text = showGroup.groupSlogan;
+    }
+
+    if (showGroup.distance) {
+        self.distanceLabel.text = showGroup.distance;
+    }
+    
+    self.memberLabel.text = showGroup.groupCount;
+    
+    [self setNeedsLayout];
+}
+
+#pragma mark UI
+-(UIImageView*)avatarImageView{
+    if(_avatarImageView==nil){
+        _avatarImageView=[[UIImageView alloc] initWithFrame:CGRectMake(kPubShowAvatarSpacing,kSmallSpace, kCommonAvatarSize, kCommonAvatarSize)];
+        //        _avatarImageView.layer.masksToBounds =YES;
+        //        _avatarImageView.layer.cornerRadius =kPubShowAvatarImageSize/2.0;
+    }
+    return _avatarImageView;
+}
+
+-(UILabel*)usernameLabel{
+    if(_usernameLabel==nil){
+        _usernameLabel=[[UILabel alloc] initWithFrame:CGRectMake(CGRectGetMaxX(_avatarImageView.frame)+kSmallTextAvatarHorizalSpace, kSmallSpace,CGRectGetMinX(self.distanceLabel.frame)-CGRectGetMaxX(self.avatarImageView.frame)-kSmallTextAvatarHorizalSpace , kLargeLabelHeight)];
+        _usernameLabel.textColor=[UIColor blackColor];
+        _usernameLabel.font = [UIFont systemFontOfSize:kLargeFontSize];
+    }
+    return _usernameLabel;
+}
+
+-(UILabel*)sigNatureLabel{
+    
+    if(!_sigNatureLabel){
+        _sigNatureLabel=[[UILabel alloc] initWithFrame:CGRectMake(CGRectGetMinX(_usernameLabel.frame), CGRectGetMaxY(_usernameLabel.frame)+kUserListLabeSpading, [[self class]contentWidth], 10)];
+        _sigNatureLabel.font=[UIFont systemFontOfSize:kCommonFontSize];
+        _sigNatureLabel.textColor=RGB(133, 133, 133);
+        _sigNatureLabel.numberOfLines=0;
+    }
+    return _sigNatureLabel;
+}
+
+-(UILabel*)distanceLabel{
+    if (_distanceLabel ==nil) {
+        _distanceLabel=[[UILabel alloc] initWithFrame:CGRectMake(CGRectGetMinX(self.memberLabel.frame)-46-6, kSmallSpace, 46, 16)];
+        _distanceLabel.font=[UIFont systemFontOfSize:kSmallFontSize];
+        _distanceLabel.textAlignment = NSTextAlignmentRight;
+        _distanceLabel.textColor=RGB(133, 133, 133);
+    }
+    
+    return _distanceLabel;
+}
+
+-(UILabel*)memberLabel{
+    if (_memberLabel ==nil) {
+        _memberLabel=[[UILabel alloc] initWithFrame:CGRectMake([SVGloble shareInstance].globleWidth-kPubShowAvatarSpacing-46, kSmallSpace, 46, 16)];
+        _memberLabel.font=[UIFont systemFontOfSize:kSmallFontSize];
+        _memberLabel.textAlignment = NSTextAlignmentRight;
+        _memberLabel.textColor=RGB(133, 133, 133);
+    }
+    return _memberLabel;
+}
+
+-(void)setup{
+    self.selectionStyle=UITableViewCellSelectionStyleNone;
+    [self addSubview:self.avatarImageView];
+    [self addSubview:self.usernameLabel];
+    [self addSubview:self.sigNatureLabel];
+    [self addSubview:self.distanceLabel];
+    [self addSubview:self.memberLabel];
+}
+
+-(id)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier{
+    self=[super initWithStyle:style reuseIdentifier:reuseIdentifier];
+    if(self){
+        [self setup];
+    }
+    return self;
+}
+
+-(void)layoutSubviews{
+    [super layoutSubviews];
+    CGRect contentFrame=_sigNatureLabel.frame;
+    contentFrame.size.height= [NSString getTextHeight:self.sigNatureLabel.text textFont:[UIFont systemFontOfSize:kCommonFontSize] width:[[self class] contentWidth]];
+    _sigNatureLabel.frame=contentFrame;
+    
+    
+    CGFloat maxY = CGRectGetMaxY(_sigNatureLabel.frame);
+    maxY+=kSmallSpace;
+    CGFloat avatarSize = 2*kSmallSpace+kCommonAvatarSize;
+    CGRect frame=self.frame;
+    frame.size.height=maxY>avatarSize?maxY:avatarSize;
+    self.frame=frame;
+}
+
+
+@end

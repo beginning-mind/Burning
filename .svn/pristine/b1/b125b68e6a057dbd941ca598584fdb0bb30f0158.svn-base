@@ -1,0 +1,27 @@
+//
+//  LCUser.h
+//  Burning
+//
+//  Created by wei_zhu on 15/5/28.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+#import <AVOSCloud.h>
+
+
+@interface LCUser : AVUser
+
+@property(nonatomic,strong) NSString *name;
+@property(nonatomic,strong)NSString *password;
+@property(nonatomic,strong)AVFile *headPotrail;
+@property(nonatomic,strong) NSArray *attentions;
+@property(nonatomic,strong)NSArray *fans;
+@property(nonatomic,strong)NSArray *freinds;
+@property(nonatomic,assign)NSInteger sex;
+@property(nonatomic,strong)NSString *phoneNumber;
+@property(nonatomic,strong)NSString *bornDate;
+@property(nonatomic,strong) NSString *manifestion;
+@property(nonatomic,strong)NSString *id;
+
+@end

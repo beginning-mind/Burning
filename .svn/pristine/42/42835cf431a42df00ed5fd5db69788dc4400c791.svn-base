@@ -1,0 +1,22 @@
+//
+//  ActivityTableViewCell.h
+//  Burning
+//
+//  Created by wei_zhu on 15/6/23.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import <UIKit/UIKit.h>
+#import "LCActivity.h"
+
+@interface ActivityTableViewCell : UITableViewCell
+
+@property (weak, nonatomic) IBOutlet UILabel *titleLabel;
+@property (weak, nonatomic) IBOutlet UILabel *timeLabel;
+@property (weak, nonatomic) IBOutlet UILabel *placeLabel;
+@property (weak, nonatomic) IBOutlet UILabel *coastLabel;
+@property (weak, nonatomic) IBOutlet UILabel *attentionPesonLabel;
+@property (weak, nonatomic) IBOutlet UIView *backView;
+
+@property(nonatomic,strong) LCActivity *lcActivity;
+@end

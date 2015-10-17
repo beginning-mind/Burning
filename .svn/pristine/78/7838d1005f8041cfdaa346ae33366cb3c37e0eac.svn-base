@@ -1,0 +1,80 @@
+//
+//  NearlyManViewController.m
+//  Burning
+//
+//  Created by 李想 on 15/5/22.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "NearlyManViewController.h"
+#import "BurningNavControl.h"
+#import "BuringTabBarController.h"
+#import <MediaPlayer/MediaPlayer.h>
+
+@interface NearlyManViewController ()
+
+//-(void)loadCustomNavControl;
+
+@property(nonatomic,strong)MPMoviePlayerController *moviePlayer;
+
+@end
+
+@implementation NearlyManViewController
+
+- (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil{
+    self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
+    if (self) {
+        // Custom initialization
+        //self.hidesBottomBarWhenPushed = YES;
+        self.showTabbar = NO;
+    }
+    return self;
+}
+
+- (void)viewDidLoad{
+    [super viewDidLoad];
+    // Do any additional setup after loading the view from its nib.
+    [self setCustomNavControl];
+    
+    NSString *file = [[NSBundle mainBundle] pathForResource:@"test" ofType:@"mp4"];
+    NSURL *url = [NSURL fileURLWithPath:file];
+    if (_moviePlayer == nil) {
+        _moviePlayer = [[MPMoviePlayerController alloc] initWithContentURL:url];
+    }else {
+        [_moviePlayer setContentURL:url];
+    }
+    [_moviePlayer prepareToPlay];
+    //_moviePlayer.controlStyle = MPMovieControlStyleNone;
+    //_moviePlayer.shouldAutoplay = YES;
+    //_moviePlayer.repeatMode = MPMovieRepeatModeOne;
+    [_moviePlayer setFullscreen:YES animated:YES];
+    _moviePlayer.scalingMode = MPMovieScalingModeNone;
+    [_moviePlayer.view setFrame:self.view.frame];
+    NSLog(@"bounds:%@",NSStringFromCGRect(self.view.frame));
+    NSLog(@"fram:%@",NSStringFromCGRect(self.view.frame));
+    [self.view addSubview:_moviePlayer.view];
+    [_moviePlayer play];
+}
+
+- (void)didReceiveMemoryWarning{
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+-(void)setCustomNavControl{
+    //set leftButton
+    [self.customNavController.leftButton setImage:[UIImage imageNamed:@"homeBtn2"] forState:UIControlStateNormal];
+    [self.customNavController.leftButton addTarget:self action:@selector(homeBtnClick) forControlEvents:UIControlEventTouchUpInside];
+    //set rightButton
+//    [navControl.rightButton setImage:[UIImage imageNamed:@"tableBtn"] forState:UIControlStateNormal];
+//    [navControl.rightButton addTarget:self action:@selector(tableBtnClick) forControlEvents:UIControlEventTouchUpInside];
+    //set titile
+    self.customNavController.title.text =@"附近的人";
+    self.customNavController.title.textColor = [UIColor whiteColor];
+}
+
+-(void)homeBtnClick{
+    [self.navigationController popViewControllerAnimated:YES];
+}
+
+@end

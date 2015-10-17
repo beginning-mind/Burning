@@ -1,0 +1,152 @@
+//
+//  BodyBuildingViewController.m
+//  Burning
+//
+//  Created by wei_zhu on 15/7/29.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "BodyBuildingViewController.h"
+#import "BodyBuildingTableViewCell.h"
+#import "MoviePlayerViewController.h"
+#import "Reachability.h"
+#import <STAlertView.h>
+#import "SVGloble.h"
+
+@interface BodyBuildingViewController ()
+
+@property(nonatomic,strong)UITableView *tableView;
+
+@property(nonatomic,strong)STAlertView *alertView;
+
+@end
+
+@implementation BodyBuildingViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    SHBodyBuilding *curSHBodyBuilding = self.shBodyBuildings[0];
+    self.title = curSHBodyBuilding.group;
+    
+    self.tableView = [[UITableView alloc]initWithFrame:CGRectMake(0, 0, [SVGloble shareInstance].globleWidth,[SVGloble shareInstance].globleAllHeight)];
+    
+    [self.view addSubview:self.tableView];
+    self.tableView.dataSource = self;
+    self.tableView.delegate = self;
+    
+    //分割线从最左边画
+    if ([self.tableView respondsToSelector:@selector(setSeparatorInset:)]) {
+        [self.tableView setSeparatorInset:UIEdgeInsetsZero];
+    }
+    if ([self.tableView respondsToSelector:@selector(setLayoutMargins:)]) {
+        [self.tableView setLayoutMargins:UIEdgeInsetsZero];
+    }
+    
+    //空余cell没有分割线
+    UIView *view = [UIView new];
+    view.backgroundColor = [UIColor clearColor];
+    [self.tableView setTableFooterView:view];
+    
+    [self.tableView reloadData];
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+    // Dispose of any resources that can be recreated.
+}
+
+#pragma mark tableViewDelegate
+
+-(NSInteger)numberOfSectionsInTableView:(UITableView *)tableView{
+    return 1;
+}
+
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section{
+    return self.shBodyBuildings.count;
+}
+
+-(CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath{
+    return 120;
+}
+
+-(UITableViewCell*)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath{
+    
+    BodyBuildingTableViewCell *bodyBuildingCell= [tableView dequeueReusableCellWithIdentifier:@"bodyBuildingCell"];
+    if(bodyBuildingCell==nil){
+        NSArray *array = [[NSBundle mainBundle] loadNibNamed:@"BodyBuildingTableViewCell" owner:self options:nil];
+        bodyBuildingCell = [array objectAtIndex:0];
+        bodyBuildingCell.selectionStyle = UITableViewCellSelectionStyleNone;
+    }
+    bodyBuildingCell.shBodyBuilding=self.shBodyBuildings[indexPath.row];
+    bodyBuildingCell.bodyBuildingTableViewCellDelegate = (id)self;
+    
+    return bodyBuildingCell;
+}
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath{
+    
+}
+
+- (void)tableView:(UITableView *)tableView willDisplayCell:(UITableViewCell *)cell forRowAtIndexPath:(NSIndexPath *)indexPath
+{
+    if ([cell respondsToSelector:@selector(setSeparatorInset:)]) {
+        [cell setSeparatorInset:UIEdgeInsetsZero];
+    }
+    if ([cell respondsToSelector:@selector(setLayoutMargins:)]) {
+        [cell setLayoutMargins:UIEdgeInsetsZero];
+    }
+}
+
+
+#pragma mark BodyBuildingTableViewCellDelegate
+-(void)playVideo:(NSString*)url title:(NSString*)title{
+    Reachability *reachability = [Reachability reachabilityWithHostName:@"www.apple.com"];
+    //结果说明：0-无连接   1-wifi    2-3G
+    NSInteger stateNet = [reachability currentReachabilityStatus];
+    if (stateNet==0) {
+        self.alertView = [[STAlertView alloc]initWithTitle:nil message:@"没有网络连接" cancelButtonTitle:@"确定" otherButtonTitle:nil cancelButtonBlock:^{
+        } otherButtonBlock:^{
+        }];
+    }
+    else if (stateNet ==1){
+        NSURL * playurl = [NSURL URLWithString:@"http://ac-kdpf0ea8.clouddn.com/4846dcd4-1a0a-f961-8855-06ea75240eba.flv"];
+        MoviePlayerViewController *movieVC = [[MoviePlayerViewController alloc]initNetworkMoviePlayerViewControllerWithURL:playurl movieTitle:title];
+        movieVC.datasource = (id)self;
+        [self presentViewController:movieVC animated:YES completion:nil];
+    }
+    else if(stateNet ==2){
+        self.alertView = [[STAlertView alloc]initWithTitle:nil message:@"当前网络环境是3G,确定观看" cancelButtonTitle:@"退出" otherButtonTitle:@"确定" cancelButtonBlock:^{
+        } otherButtonBlock:^{
+            NSURL * playurl = [NSURL URLWithString:url];
+            MoviePlayerViewController *movieVC = [[MoviePlayerViewController alloc]initNetworkMoviePlayerViewControllerWithURL:playurl movieTitle:title];
+            movieVC.datasource = (id)self;
+            [self presentViewController:movieVC animated:YES completion:nil];
+        }];
+    }
+}
+
+#pragma mark MoviePlayerViewController delegate
+- (BOOL)isHavePreviousMovie{
+    return NO;
+}
+- (BOOL)isHaveNextMovie{
+    return NO;
+}
+- (NSDictionary *)previousMovieURLAndTitleToTheCurrentMovie{
+    NSDictionary *dic = [NSDictionary dictionaryWithObjectsAndKeys:[NSURL URLWithString:@"http://119.188.38.137/youku/6774B396A913A82B3F37114283/030008010055012F1BE2C803847FFEF58A6F45-1628-788A-BF3F-D0BD80780F72.mp4"],KURLOfMovieDicTionary,@"qqqqqqq",KTitleOfMovieDictionary, nil];
+    return dic;
+}
+- (NSDictionary *)nextMovieURLAndTitleToTheCurrentMovie{
+    return nil;
+}
+/*
+#pragma mark - Navigation
+
+// In a storyboard-based application, you will often want to do a little preparation before navigation
+- (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
+    // Get the new view controller using [segue destinationViewController].
+    // Pass the selected object to the new view controller.
+}
+*/
+
+@end

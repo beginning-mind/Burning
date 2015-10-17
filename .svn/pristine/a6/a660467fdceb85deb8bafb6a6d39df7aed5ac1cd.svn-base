@@ -1,0 +1,26 @@
+//
+//  LCUser.m
+//  Burning
+//
+//  Created by wei_zhu on 15/5/28.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "LCUser.h"
+
+@implementation LCUser
+
+@dynamic name;
+@dynamic password;
+@dynamic headPotrail;
+@dynamic attentions;
+@dynamic fans;
+@dynamic freinds;
+@dynamic sex;
+@dynamic phoneNumber;
+@dynamic bornDate;
+@dynamic manifestion;
+@dynamic id;
+
+
+@end

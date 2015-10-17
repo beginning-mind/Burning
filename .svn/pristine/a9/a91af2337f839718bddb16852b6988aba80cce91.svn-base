@@ -1,0 +1,224 @@
+//
+//  ModelTransfer.m
+//  Burning
+//
+//  Created by wei_zhu on 15/6/11.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "ModelTransfer.h"
+#import <CoreLocation/CoreLocation.h>
+#import "LayoutConst.h"
+
+@implementation ModelTransfer
+
+#pragma mark publish
+//+(SHPublish*)lcPublishToSHPublish:(LCPublish*)lcPublish{
+//    SHPublish* shPublis=[[SHPublish alloc] init];
+//    shPublis.username=lcPublish.creator.username;
+//    AVFile* avatarFile=[lcPublish.creator objectForKey:@"avatar"];
+//    shPublis.avatarUrl=avatarFile.url;
+//    shPublis.publishContent=lcPublish.publishContent;
+//    NSMutableArray* photoUrls=[NSMutableArray array];
+//    NSMutableArray *thumbPhotos = [NSMutableArray array];
+//    int thumbSize = (CGRectGetWidth([[UIScreen mainScreen] bounds])-2*kCommonAvatarLeadingSpace-2*kPubShowPhotoInset)/3;
+//    for(AVFile* photoFile in lcPublish.publishPhotos){
+//        [photoUrls addObject:photoFile.url];
+//        [photoFile getThumbnail:YES width:thumbSize height:thumbSize withBlock:^(UIImage *image, NSError *error) {
+//            if (!error) {
+//                [thumbPhotos addObject:image];
+//            }
+//            else{
+//                UIImage *defaultImage = [UIImage imageNamed:@"login_backgroud.jpg"];
+//                [thumbPhotos addObject:defaultImage];
+//            }
+//        }];
+//    }
+//    shPublis.thumbPubPhotos = thumbPhotos;
+//    shPublis.publishPhotos=photoUrls;
+//    shPublis.publishTimestamp=lcPublish.createdAt;
+//    
+//    NSMutableArray* digUrls=[NSMutableArray array];
+//    NSMutableArray* digUserNames=[NSMutableArray array];
+//    for(AVUser* digUser in lcPublish.digUsers){
+//        [digUserNames addObject:digUser.username];
+//        AVFile *digUserAvatarFile = [digUser objectForKey:@"avatar"];
+//        if (digUserAvatarFile ==nil) {
+//            [digUrls addObject:@""];
+//        }
+//        else{
+//            [digUrls addObject:digUserAvatarFile.url];
+//        }
+//    }
+//    shPublis.publishLikes=digUrls;
+//    shPublis.publishLikesName = digUserNames;
+//    NSMutableArray* shComments=[NSMutableArray array];
+//    int i=0;
+//    for(LCComment* comment in lcPublish.comments){
+//        SHPubComment *shComment = [[SHPubComment alloc]init];
+//        shComment.commentContent = comment.commentContent;
+//        shComment.timeStamp = comment.createdAt;
+//        if (lcPublish.commentUsers.count>i) {
+//            AVUser *commentUser  = lcPublish.commentUsers[i];
+//            if (commentUser !=nil) {
+//                shComment.commentUsername = commentUser.username;
+//                AVFile *avatar = [commentUser objectForKey:@"avatar"];
+//                if (avatar ==nil) {
+//                    shComment.avatarUrl = @"";
+//                }
+//                else{
+//                    shComment.avatarUrl = avatar.url;
+//                }
+//            }
+//        }
+//        [shComments addObject:shComment];
+//        i++;
+//    }
+//    shPublis.publishComments=shComments;
+//    
+//    return shPublis;
+//}
+
+//+(SHPubComment*)lcCommentToSHPubComment:(LCComment*)lcComment{
+//    SHPubComment* shComment=[[SHPubComment alloc] init];
+//    AVUser *commentsUser = [lcComment objectForKey:@"commentUser"];
+//    shComment.commentUsername=[commentsUser objectForKey:@"username"];
+//    NSLog(@"commetsUser.ojbectId:%@",commentsUser.objectId);     shComment.commentContent=lcComment.commentContent;
+//    AVFile *commentsAvatarFile =[commentsUser objectForKey:@"avatar"];
+//    if (commentsAvatarFile ==nil) {
+//        shComment.avatarUrl = @"";
+//    }
+//    else{
+//        shComment.avatarUrl = commentsAvatarFile.url;
+//    }
+//    shComment.timeStamp = lcComment.createdAt;
+//
+//    return shComment;
+//}
+
+#pragma mark activity
+//+(SHActivity*)lcActivityToSHActivity:(LCActivity*)lcActivity{
+//    SHActivity *shActivity =[[SHActivity alloc]init];
+//    shActivity.username = lcActivity.creator.username;
+//    AVFile *avatarFile = [lcActivity.creator objectForKey:@"avatar"];
+//    shActivity.avatarUrl =avatarFile.url;
+//    shActivity.title = lcActivity.title;
+//    shActivity.activityDate = lcActivity.activityDate;
+//    shActivity.maxPersonCount = lcActivity.maxPersonCount;
+//    shActivity.coast = lcActivity.coast;
+//    shActivity.content = lcActivity.content;
+//    AVFile *backFile = lcActivity.backGroundFile;
+//    shActivity.backGroundUrl = backFile.url;
+//    shActivity.place = lcActivity.place;
+//    
+//    NSMutableArray* attends=[NSMutableArray array];
+//    for(AVUser* attendedUser in lcActivity.attendUsers){
+//        AVFile *attendedUserAvatarFile = [attendedUser objectForKey:@"avatar"];
+//        if (attendedUserAvatarFile ==nil) {
+//            [attends addObject:@""];
+//        }
+//        else{
+//            [attends addObject:attendedUserAvatarFile.url];
+//        }
+//    }
+//    shActivity.attendedUsers=attends;
+//    
+//    NSMutableArray *shComments = [NSMutableArray array];
+//    int i = 0;
+//    for (LCActivityComment *comment in lcActivity.comments) {
+//        SHActivityComment *shComment = [[SHActivityComment alloc]init];
+//        shComment.commentContent = comment.commentContent;
+//        shComment.timeStamp = comment.createdAt;
+//        if (lcActivity.commentUsers.count>i) {
+//            AVUser *commentUser  = lcActivity.commentUsers[i];
+//            if (commentUser !=nil) {
+//                shComment.commentUsername = commentUser.username;
+//                AVFile *avatar = [commentUser objectForKey:@"avatar"];
+//                if (avatar ==nil) {
+//                    shComment.avatarUrl = @"";
+//                }
+//                else{
+//                    shComment.avatarUrl = avatar.url;
+//                }
+//            }
+//        }
+//        [shComments addObject:shComment];
+//        i++;
+//    }
+//    shActivity.activityComments = shComments;
+//    
+//    return shActivity;
+//}
+//
+//+(SHActivityComment*)lcActivityCommentToSHActivityComment:(LCActivityComment*)lcActivityComment{
+//    SHActivityComment *shComment = [[SHActivityComment alloc]init];
+//    shComment.commentUsername = lcActivityComment.commentUsername;
+//    shComment.commentContent = lcActivityComment.commentContent;
+//    
+//    AVUser *commentsUser = lcActivityComment.commentUser;
+//    AVFile *commentsAvatarFile =[commentsUser objectForKey:@"avatar"];
+//    if (commentsAvatarFile ==nil) {
+//        shComment.avatarUrl = @"";
+//    }
+//    else{
+//        shComment.avatarUrl = commentsAvatarFile.url;
+//    }
+//    shComment.timeStamp = lcActivityComment.createdAt;
+//    
+//    return shComment;
+//}
+
++(SHGroup *)coversation2SHGroup:(AVIMConversation *)conversation AndCurlocation:(CLLocation*)curLocation {
+    NSDictionary *dict = conversation.attributes;
+    NSString *url = [dict objectForKey:@"groupAvatarPicUrl"];
+    NSString *brief = [dict objectForKey:@"groupBrief"];
+    NSString *location = [dict objectForKey:@"location"];
+    
+    SHGroup *shGroup = [[SHGroup alloc]init];
+    shGroup.conversationId = conversation.conversationId;
+    shGroup.groupName = conversation.name;
+    shGroup.avatarUrl = url;
+    shGroup.groupSlogan = brief;
+    shGroup.groupCount = [[NSString stringWithFormat:@"%lu", (unsigned long)conversation.members.count] stringByAppendingString:@"/100"];
+    
+    //计算距离
+    NSArray *arr = [location componentsSeparatedByString:@","];
+    NSString *strLatitude =[arr objectAtIndex:0];
+    NSString *strLongitude =[arr objectAtIndex:1];
+    CLLocation *groupLocation = [[CLLocation alloc]initWithLatitude:[strLatitude floatValue] longitude:[strLongitude floatValue]];
+    
+    if (curLocation) {
+        CLLocationDistance meters= [curLocation distanceFromLocation:groupLocation];
+        NSString *disTxt = @"";
+        if (meters > 1000) {
+            meters = meters/1000;
+            disTxt = [[NSString stringWithFormat:@"%.00f",meters] stringByAppendingString:@"千米"];
+        } else {
+            disTxt = [[NSString stringWithFormat:@"%.00f", meters] stringByAppendingString:@"米"];
+        }
+        shGroup.distance = disTxt;
+    }
+    
+    return shGroup;
+}
+
++(SHBodyBuildingGroup*)lcBodyBuildingToSHBodyBuildingGroup:(LCBodyBuilding*)lcBodyBuilding{
+    SHBodyBuildingGroup *shBodyBuildingGroup = [[SHBodyBuildingGroup alloc]init];
+    shBodyBuildingGroup.group = lcBodyBuilding.group;
+    shBodyBuildingGroup.backGroudUrl = lcBodyBuilding.groupBackgroudUrl;
+    shBodyBuildingGroup.title = lcBodyBuilding.groupTitle;
+    
+    return shBodyBuildingGroup;
+}
+
++(SHBodyBuilding*)lcBodyBuildingToSHBodyBuilding:(LCBodyBuilding*)lcBodyBuilding{
+    SHBodyBuilding *shBodyBuildng = [[SHBodyBuilding alloc]init];
+    shBodyBuildng.backGroudUrl = lcBodyBuilding.backGroudUrl;
+    shBodyBuildng.title = lcBodyBuilding.title;
+    shBodyBuildng.group = lcBodyBuilding.group;
+    shBodyBuildng.videoUrl = lcBodyBuilding.videoUrl;
+    
+    return shBodyBuildng;
+}
+
+@end

@@ -1,0 +1,83 @@
+//
+//  SettingsViewController.m
+//  Burning
+//
+//  Created by Xiang Li on 15/7/28.
+//  Copyright (c) 2015年 BurningTech. All rights reserved.
+//
+
+#import "SettingsViewController.h"
+#import <SDWebImage/UIImageView+WebCache.h>
+#import "CDIM.h"
+#import "StartPageViewController.h"
+#import "GroupGeneralEditViewController.h"
+#import "BuringTabBarController.h"
+
+@interface SettingsViewController ()
+
+@end
+
+@implementation SettingsViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    self.title = @"设置";
+    
+    [self showCacheSize];
+    
+    NSString *currentUsername = [AVUser currentUser].username;
+    NSString *buttonTitle = @"退出";
+    buttonTitle = [buttonTitle stringByAppendingString:currentUsername];
+    [self.exitCurrentAccountButton setTitle:buttonTitle forState:UIControlStateNormal];
+    
+}
+
+-(void)showCacheSize {
+    int cacheSizeByte = [[SDImageCache sharedImageCache] getSize];
+    cacheSizeByte = cacheSizeByte/1024.0/1024.0;
+    NSString *strSize = [NSString stringWithFormat:@"%d", cacheSizeByte];
+    strSize = [strSize stringByAppendingString:@"MB >"];
+    [self.cleanCacheButton setTitle:strSize forState:UIControlStateNormal];
+}
+
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+}
+
+
+
+- (IBAction)changePasswordAction:(id)sender {
+    GroupGeneralEditViewController *groupGeneralEditViewController = [[GroupGeneralEditViewController alloc]init];
+    groupGeneralEditViewController.editType = 3;
+    [self.navigationController pushViewController:groupGeneralEditViewController animated:YES];
+}
+
+
+- (IBAction)cleanCacheAction:(id)sender {
+    [self showProgress];
+    [[SDImageCache sharedImageCache] clearDisk];
+    [[SDImageCache sharedImageCache] clearMemory];
+    
+    [self showCacheSize];
+    [self hideProgress];
+}
+
+- (IBAction)checkoutUpdateAction:(id)sender {
+}
+
+- (IBAction)exitCurrentAcountAction:(id)sender {
+    CDIM *im = [CDIM sharedInstance];
+    [im closeWithCallback:^(BOOL succeeded, NSError *error) {
+        if(error) {
+            [self alert:@"关闭IM客户端失败"];
+        }else {
+            NSLog(@"--- GoodBye and closing your IM client : %@",[self getCurrentUser].username);
+            [AVUser logOut];  //清除缓存用户对象
+            StartPageViewController *startPageViewController = [[StartPageViewController alloc]init];
+            BuringTabBarController *mainVC =  self.tabBarController;
+            [mainVC unloadData];
+            [self.navigationController pushViewController:startPageViewController animated:YES];
+        }
+    }];
+}
+@end
